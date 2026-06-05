@@ -76,6 +76,20 @@ export interface Transaction {
   date: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  password?: string;
+  fullName: string;
+  businessName: string;
+  address: string;
+  mobileNumber: string;
+  role?: 'admin' | 'user' | 'demo' | null;
+  status: 'Pending' | 'Approved' | 'Suspended';
+}
+
+
 // Initial Data definitions
 export const INITIAL_VEHICLES: Vehicle[] = [
   {

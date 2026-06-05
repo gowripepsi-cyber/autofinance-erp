@@ -13,16 +13,38 @@ import {
   FileCheck,
   AlertCircle,
   TrendingUp,
-  FileText
+  FileText,
+  List,
+  Search,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { Customer } from '../types';
 
 interface CustomersScreenProps {
   customers: Customer[];
   onAddCustomer: (customer: Customer) => void;
+  onUpdateCustomer: (customer: Customer) => void;
+  onDeleteCustomer: (customerId: string) => void;
 }
 
-export default function CustomersScreen({ customers, onAddCustomer }: CustomersScreenProps) {
+export default function CustomersScreen({ 
+  customers, 
+  onAddCustomer, 
+  onUpdateCustomer, 
+  onDeleteCustomer 
+}: CustomersScreenProps) {
+  const [isListView, setIsListView] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+
+  const filteredCustomers = customers.filter(c => 
+    c.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.phoneNumber.includes(searchQuery) ||
+    c.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   // Personal Info states
   const [fullName, setFullName] = useState('Rahul Sharma');
   const [fatherName, setFatherName] = useState('Vijay Sharma');
@@ -54,14 +76,53 @@ export default function CustomersScreen({ customers, onAddCustomer }: CustomersS
   const creditCategory = crifScore >= 700 ? 'Prime / Low Risk' : crifScore >= 600 ? 'Medium Risk' : 'High Risk';
   const approvalProbability = crifScore >= 700 ? '94.2%' : crifScore >= 600 ? '78.5%' : '14.0%';
 
+  const loadCustomerIntoForm = (c: Customer) => {
+    setEditingCustomer(c);
+    setFullName(c.fullName);
+    setFatherName(c.fatherName);
+    setPhoneNumber(c.phoneNumber);
+    setIdNumber(c.idNumber);
+    setGender(c.gender);
+    setAddress(c.address);
+    setCity(c.city);
+    setPincode(c.pincode);
+    setOccupation(c.occupation);
+    setIntroducerName(c.introducerName);
+    setSelectedAvatar(c.avatar);
+    setPanUploaded(c.panUploaded);
+    setUtilityBillUploaded(c.utilityBillUploaded);
+    setCrifScore(c.crifScore);
+    setIsListView(false);
+  };
+
+  const clearForm = () => {
+    setEditingCustomer(null);
+    setFullName('');
+    setFatherName('');
+    setPhoneNumber('');
+    setIdNumber('');
+    setGender('Male');
+    setAddress('');
+    setCity('');
+    setPincode('');
+    setOccupation('');
+    setIntroducerName('');
+    setSelectedAvatar(premiumAvatars[0]);
+    setPanUploaded(false);
+    setUtilityBillUploaded(false);
+    setCrifScore(700);
+  };
+
   const handleRegister = () => {
     if (!fullName || !phoneNumber) {
       alert("Full Name and Phone Number are required.");
       return;
     }
 
-    const newCust: Customer = {
-      id: `CUST-${Math.floor(100 + Math.random() * 900)}`,
+    const targetId = editingCustomer ? editingCustomer.id : `CUST-${Math.floor(100 + Math.random() * 900)}`;
+
+    const cData: Customer = {
+      id: targetId,
       fullName,
       fatherName,
       phoneNumber,
@@ -78,14 +139,26 @@ export default function CustomersScreen({ customers, onAddCustomer }: CustomersS
       crifScore,
       category: creditCategory as any,
       probability: approvalProbability,
-      registrationDate: new Date().toISOString().split('T')[0],
+      registrationDate: editingCustomer ? editingCustomer.registrationDate : new Date().toISOString().split('T')[0],
       status: 'Completed'
     };
 
-    onAddCustomer(newCust);
+    if (editingCustomer) {
+      onUpdateCustomer(cData);
+    } else {
+      onAddCustomer(cData);
+    }
+
+    clearForm();
+    setIsListView(true);
   };
 
   const handleResetForm = () => {
+    if (editingCustomer) {
+      clearForm();
+      setIsListView(true);
+      return;
+    }
     if (confirm("Reset current onboarding form entry values?")) {
       setFullName('Rahul Sharma');
       setFatherName('Vijay Sharma');
@@ -109,27 +182,180 @@ export default function CustomersScreen({ customers, onAddCustomer }: CustomersS
       {/* Header and Controls */}
       <div className="flex items-end justify-between">
         <div>
-          <h2 className="font-headline text-3xl font-extrabold text-[#091426] tracking-tight">New Customer Registration</h2>
-          <p className="font-sans text-sm text-[#45474c] mt-1.5 font-medium animate-pulse">Onboard a new client and perform automated credit assessment.</p>
+          <h2 className="font-headline text-3xl font-extrabold text-[#091426] tracking-tight">
+            {isListView 
+              ? 'Saved Customers Directory' 
+              : editingCustomer 
+              ? `Edit Customer: ${editingCustomer.id}` 
+              : 'New Customer Registration'}
+          </h2>
+          <p className="font-sans text-sm text-[#45474c] mt-1.5 font-medium">
+            {isListView 
+              ? 'Browse registered customers, search by name or contact, and view credit tiers.' 
+              : editingCustomer 
+              ? `Update profile details and credit parameters for ${fullName}.`
+              : 'Onboard a new client and perform automated credit assessment.'}
+          </p>
         </div>
         <div className="flex gap-3">
           <button 
-            onClick={handleResetForm}
-            className="px-5 py-2.5 bg-white border border-[#cbd5e1] hover:bg-[#f2f4f6] text-xs font-bold text-[#091426] rounded-xl transition-colors cursor-pointer shadow-sm"
+            onClick={() => {
+              if (isListView) {
+                clearForm();
+                setIsListView(false);
+              } else {
+                clearForm();
+                setIsListView(true);
+              }
+            }}
+            className="px-5 py-2.5 bg-white border border-[#cbd5e1] hover:bg-[#f2f4f6] text-xs font-bold text-[#091426] rounded-xl transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
           >
-            Draft Save
+            {isListView ? (
+              <>
+                <User className="w-4 h-4 text-[#645efb]" />
+                <span>Show Registration Form</span>
+              </>
+            ) : (
+              <>
+                <List className="w-4 h-4 text-[#645efb]" />
+                <span>View Saved Customers</span>
+              </>
+            )}
           </button>
-          <button 
-            onClick={handleRegister}
-            className="px-6 py-2.5 bg-[#645efb] hover:bg-[#4b41e1] text-xs font-bold text-white rounded-xl shadow-md cursor-pointer transition-colors"
-          >
-            Start Verification
-          </button>
+          {!isListView && (
+            <>
+              <button 
+                onClick={handleResetForm}
+                className="px-5 py-2.5 bg-white border border-[#cbd5e1] hover:bg-[#f2f4f6] text-xs font-bold text-[#091426] rounded-xl transition-colors cursor-pointer shadow-sm"
+              >
+                {editingCustomer ? 'Cancel Edit' : 'Draft Save'}
+              </button>
+              <button 
+                onClick={handleRegister}
+                className="px-6 py-2.5 bg-[#645efb] hover:bg-[#4b41e1] text-xs font-bold text-white rounded-xl shadow-md cursor-pointer transition-colors"
+              >
+                {editingCustomer ? 'Save Changes' : 'Start Verification'}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Main Form Fields Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
+      {isListView ? (
+        /* LIST VIEW */
+        <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1]/40 shadow-sm space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#45474c] w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search customers by name, phone, city, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#f2f4f6] border border-[#cbd5e1]/40 focus:border-[#645efb] focus:bg-white rounded-xl pl-10 pr-4 py-2 text-xs font-sans text-[#191c1e] outline-none transition-all"
+              />
+            </div>
+            <div className="text-xs text-[#45474c] font-semibold">
+              Total Customers: <span className="text-[#091426] font-bold">{filteredCustomers.length}</span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-sans text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-[#cbd5e1]/30 text-[#45474c] uppercase font-bold text-[10px] tracking-wider bg-[#f7f9fb]">
+                  <th className="py-3 px-4 rounded-l-xl">Customer ID</th>
+                  <th className="py-3 px-4">Profile</th>
+                  <th className="py-3 px-4">Contact</th>
+                  <th className="py-3 px-4">Location</th>
+                  <th className="py-3 px-4 text-center">CRIF Score</th>
+                  <th className="py-3 px-4">Risk Category</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right rounded-r-xl">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#cbd5e1]/20">
+                {filteredCustomers.map((c) => (
+                  <tr key={c.id} className="hover:bg-[#f7f9fb]/50 transition-colors">
+                    <td className="py-4 px-4 font-bold text-[#091426]">{c.id}</td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-[#cbd5e1]/50 shadow-sm flex-shrink-0">
+                          <img src={c.avatar} alt={c.fullName} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-[#091426]">{c.fullName}</div>
+                          <div className="text-[10px] text-[#45474c] mt-0.5">{c.occupation}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="font-medium text-[#191c1e]">+91 {c.phoneNumber}</div>
+                      <div className="text-[10px] text-[#45474c] mt-0.5">Introducer: {c.introducerName}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="font-medium text-[#191c1e]">{c.city}</div>
+                      <div className="text-[10px] text-[#45474c] mt-0.5 font-mono">{c.pincode}</div>
+                    </td>
+                    <td className="py-4 px-4 text-center font-headline font-bold text-[#091426]">
+                      {c.crifScore}
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                        c.category === 'Prime / Low Risk' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
+                        c.category === 'Medium Risk' ? 'bg-amber-500/10 text-amber-600 border border-emerald-500/20' :
+                        'bg-red-500/10 text-red-600 border border-red-500/20'
+                      }`}>
+                        {c.category}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                        c.status === 'Completed' ? 'bg-[#89f5e7] text-[#005049]' : 'bg-amber-500/15 text-amber-700'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => loadCustomerIntoForm(c)}
+                          className="p-1.5 bg-[#f2f4f6] text-[#091426] hover:bg-[#cbd5e1] rounded-lg transition-colors cursor-pointer border-none"
+                          title="Edit Profile"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete customer ${c.fullName}?`)) {
+                              onDeleteCustomer(c.id);
+                            }
+                          }}
+                          className="p-1.5 bg-red-500/10 text-red-600 hover:bg-red-500/20 rounded-lg transition-colors cursor-pointer border-none"
+                          title="Delete Record"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredCustomers.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-xs text-[#45474c] font-semibold">
+                      No matching customer records found in memory ledger.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* FORM VIEW */
+        <>
+          {/* Main Form Fields Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
         
         {/* Left Side: Attributes Fields Container */}
         <div className="lg:col-span-7 space-y-7">
@@ -427,31 +653,33 @@ export default function CustomersScreen({ customers, onAddCustomer }: CustomersS
         </div>
       </div>
 
-      {/* Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-[280px] right-0 bg-white border-t border-[#cbd5e1] p-4 flex items-center justify-between shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-30 select-none">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#eceef0] rounded-xl">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#645efb] animate-pulse" />
-            <span className="font-sans text-xs font-bold text-[#45474c]">Document attachments synchronized</span>
-          </div>
-        </div>
+          {/* Sticky Bottom Bar */}
+          <div className="fixed bottom-0 left-[280px] right-0 bg-white border-t border-[#cbd5e1] p-4 flex items-center justify-between shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-30 select-none">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#eceef0] rounded-xl">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#645efb] animate-pulse" />
+                <span className="font-sans text-xs font-bold text-[#45474c]">Document attachments synchronized</span>
+              </div>
+            </div>
 
-        <div className="flex gap-3">
-          <button 
-            onClick={handleResetForm}
-            className="px-5 py-2.5 border border-[#cbd5e1] text-[#091426] font-sans text-xs font-semibold rounded-xl hover:bg-[#f2f4f6] cursor-pointer transition-colors"
-          >
-            Reset Form Fields
-          </button>
-          
-          <button 
-            onClick={handleRegister}
-            className="px-10 py-3 bg-[#091426] hover:bg-[#1e293b] text-white font-sans text-xs font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
-          >
-            Complete Registration
-          </button>
-        </div>
-      </div>
+            <div className="flex gap-3">
+              <button 
+                onClick={handleResetForm}
+                className="px-5 py-2.5 border border-[#cbd5e1] text-[#091426] font-sans text-xs font-semibold rounded-xl hover:bg-[#f2f4f6] cursor-pointer transition-colors"
+              >
+                {editingCustomer ? 'Cancel Edit' : 'Reset Form Fields'}
+              </button>
+              
+              <button 
+                onClick={handleRegister}
+                className="px-10 py-3 bg-[#091426] hover:bg-[#1e293b] text-white font-sans text-xs font-bold rounded-xl shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
+              >
+                {editingCustomer ? 'Save Changes' : 'Complete Registration'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </motion.div>
   );
 }
