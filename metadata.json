@@ -1,0 +1,6 @@
+{
+  "name": "AutoFinance ERP",
+  "description": "An enterprise Auto Finance and ERP dashboard for real-time portfolio overview, customer onboarding, vehicle purchase entry, and loan application processing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
