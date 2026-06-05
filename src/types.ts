@@ -87,6 +87,9 @@ export interface User {
   mobileNumber: string;
   role?: 'admin' | 'user' | 'demo' | null;
   status: 'Pending' | 'Approved' | 'Suspended';
+  subscriptionTier?: 'Free' | 'Basic' | 'Pro' | 'Enterprise';
+  subscriptionStatus?: 'Active' | 'Inactive' | 'Trial' | 'Expired';
+  subscriptionEndDate?: string;
 }
 
 

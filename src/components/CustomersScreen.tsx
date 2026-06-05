@@ -19,22 +19,27 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { Customer } from '../types';
+import { Customer, User as UserType } from '../types';
 
 interface CustomersScreenProps {
   customers: Customer[];
   onAddCustomer: (customer: Customer) => void;
   onUpdateCustomer: (customer: Customer) => void;
   onDeleteCustomer: (customerId: string) => void;
+  user: UserType | null;
 }
 
 export default function CustomersScreen({ 
   customers, 
   onAddCustomer, 
   onUpdateCustomer, 
-  onDeleteCustomer 
+  onDeleteCustomer,
+  user
 }: CustomersScreenProps) {
+  const isAdmin = user?.role === 'admin' || user?.username === 'admin';
   const [isListView, setIsListView] = useState(false);
+  const showListView = isAdmin || isListView;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
@@ -46,23 +51,23 @@ export default function CustomersScreen({
   );
 
   // Personal Info states
-  const [fullName, setFullName] = useState('Rahul Sharma');
-  const [fatherName, setFatherName] = useState('Vijay Sharma');
-  const [phoneNumber, setPhoneNumber] = useState('9876543210');
-  const [idNumber, setIdNumber] = useState('5420 1102 9923');
+  const [fullName, setFullName] = useState('');
+  const [fatherName, setFatherName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [idNumber, setIdNumber] = useState('');
   const [gender, setGender] = useState('Male');
-  const [address, setAddress] = useState('221B Baker Street, Flat 4');
-  const [city, setCity] = useState('Mumbai');
-  const [pincode, setPincode] = useState('400001');
-  const [occupation, setOccupation] = useState('Business Owner');
-  const [introducerName, setIntroducerName] = useState('Staff ID: 9942');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [occupation, setOccupation] = useState('');
+  const [introducerName, setIntroducerName] = useState('');
 
   // Document verification checklists
-  const [panUploaded, setPanUploaded] = useState(true);
+  const [panUploaded, setPanUploaded] = useState(false);
   const [utilityBillUploaded, setUtilityBillUploaded] = useState(false);
 
   // Credit health metrics
-  const [crifScore, setCrifScore] = useState(742);
+  const [crifScore, setCrifScore] = useState(700);
 
   // High-end pre-configured profile pictures that the user can choose from
   const premiumAvatars = [
@@ -160,14 +165,18 @@ export default function CustomersScreen({
       return;
     }
     if (confirm("Reset current onboarding form entry values?")) {
-      setFullName('Rahul Sharma');
-      setFatherName('Vijay Sharma');
-      setPhoneNumber('9876543210');
-      setIdNumber('5420 1102 9923');
-      setAddress('221B Baker Street, Flat 4');
-      setCity('Mumbai');
-      setPincode('400001');
-      setOccupation('Business Owner');
+      setFullName('');
+      setFatherName('');
+      setPhoneNumber('');
+      setIdNumber('');
+      setAddress('');
+      setCity('');
+      setPincode('');
+      setOccupation('');
+      setIntroducerName('');
+      setPanUploaded(false);
+      setUtilityBillUploaded(false);
+      setCrifScore(700);
     }
   };
 
@@ -183,14 +192,14 @@ export default function CustomersScreen({
       <div className="flex items-end justify-between">
         <div>
           <h2 className="font-headline text-3xl font-extrabold text-[#091426] tracking-tight">
-            {isListView 
+            {showListView 
               ? 'Saved Customers Directory' 
               : editingCustomer 
               ? `Edit Customer: ${editingCustomer.id}` 
               : 'New Customer Registration'}
           </h2>
           <p className="font-sans text-sm text-[#45474c] mt-1.5 font-medium">
-            {isListView 
+            {showListView 
               ? 'Browse registered customers, search by name or contact, and view credit tiers.' 
               : editingCustomer 
               ? `Update profile details and credit parameters for ${fullName}.`
@@ -198,31 +207,33 @@ export default function CustomersScreen({
           </p>
         </div>
         <div className="flex gap-3">
-          <button 
-            onClick={() => {
-              if (isListView) {
-                clearForm();
-                setIsListView(false);
-              } else {
-                clearForm();
-                setIsListView(true);
-              }
-            }}
-            className="px-5 py-2.5 bg-white border border-[#cbd5e1] hover:bg-[#f2f4f6] text-xs font-bold text-[#091426] rounded-xl transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
-          >
-            {isListView ? (
-              <>
-                <User className="w-4 h-4 text-[#645efb]" />
-                <span>Show Registration Form</span>
-              </>
-            ) : (
-              <>
-                <List className="w-4 h-4 text-[#645efb]" />
-                <span>View Saved Customers</span>
-              </>
-            )}
-          </button>
-          {!isListView && (
+          {!isAdmin && (
+            <button 
+              onClick={() => {
+                if (isListView) {
+                  clearForm();
+                  setIsListView(false);
+                } else {
+                  clearForm();
+                  setIsListView(true);
+                }
+              }}
+              className="px-5 py-2.5 bg-white border border-[#cbd5e1] hover:bg-[#f2f4f6] text-xs font-bold text-[#091426] rounded-xl transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              {isListView ? (
+                <>
+                  <User className="w-4 h-4 text-[#645efb]" />
+                  <span>Show Registration Form</span>
+                </>
+              ) : (
+                <>
+                  <List className="w-4 h-4 text-[#645efb]" />
+                  <span>View Saved Customers</span>
+                </>
+              )}
+            </button>
+          )}
+          {!showListView && (
             <>
               <button 
                 onClick={handleResetForm}
@@ -241,7 +252,7 @@ export default function CustomersScreen({
         </div>
       </div>
 
-      {isListView ? (
+      {showListView ? (
         /* LIST VIEW */
         <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1]/40 shadow-sm space-y-4">
           <div className="flex justify-between items-center gap-4">
@@ -318,13 +329,15 @@ export default function CustomersScreen({
                     </td>
                     <td className="py-4 px-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => loadCustomerIntoForm(c)}
-                          className="p-1.5 bg-[#f2f4f6] text-[#091426] hover:bg-[#cbd5e1] rounded-lg transition-colors cursor-pointer border-none"
-                          title="Edit Profile"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
+                        {!isAdmin && (
+                          <button
+                            onClick={() => loadCustomerIntoForm(c)}
+                            className="p-1.5 bg-[#f2f4f6] text-[#091426] hover:bg-[#cbd5e1] rounded-lg transition-colors cursor-pointer border-none"
+                            title="Edit Profile"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             if (confirm(`Are you sure you want to delete customer ${c.fullName}?`)) {
@@ -373,7 +386,7 @@ export default function CustomersScreen({
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
-                  placeholder="Ex: Rahul Sharma"
+                  placeholder="Enter full name (e.g. Rahul Sharma)"
                 />
               </div>
 
@@ -384,7 +397,7 @@ export default function CustomersScreen({
                   value={fatherName}
                   onChange={(e) => setFatherName(e.target.value)}
                   className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
-                  placeholder="Ex: Vijay Sharma"
+                  placeholder="Enter father's name (e.g. Vijay Sharma)"
                 />
               </div>
 
@@ -397,7 +410,7 @@ export default function CustomersScreen({
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     className="w-full pl-12 rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
-                    placeholder="9876543210"
+                    placeholder="Enter 10-digit mobile number"
                   />
                 </div>
               </div>
@@ -409,7 +422,7 @@ export default function CustomersScreen({
                   value={idNumber}
                   onChange={(e) => setIdNumber(e.target.value)}
                   className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
-                  placeholder="XXXX XXXX XXXX"
+                  placeholder="Enter Aadhaar or ID card number"
                 />
               </div>
 
@@ -432,7 +445,7 @@ export default function CustomersScreen({
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
-                  placeholder="Enter full permanent residential address details..."
+                  placeholder="Enter permanent residential address..."
                   rows={3}
                 />
               </div>
@@ -444,6 +457,7 @@ export default function CustomersScreen({
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
+                  placeholder="Enter city (e.g. Mumbai)"
                 />
               </div>
 
@@ -454,6 +468,7 @@ export default function CustomersScreen({
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value)}
                   className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
+                  placeholder="Enter 6-digit zip/pincode"
                 />
               </div>
 
@@ -464,6 +479,7 @@ export default function CustomersScreen({
                   value={occupation}
                   onChange={(e) => setOccupation(e.target.value)}
                   className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all text-[#091426] font-semibold"
+                  placeholder="Enter occupation status (e.g. Business Owner)"
                 />
               </div>
 
@@ -474,6 +490,7 @@ export default function CustomersScreen({
                   value={introducerName}
                   onChange={(e) => setIntroducerName(e.target.value)}
                   className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
+                  placeholder="Enter introducer reference name or ID"
                 />
               </div>
             </div>

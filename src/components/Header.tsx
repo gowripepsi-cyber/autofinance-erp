@@ -4,26 +4,17 @@
  */
 
 import { useState } from 'react';
-import { Search, MapPin, Bell, ChevronDown } from 'lucide-react';
+import { Search, Bell, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
-  branch: string;
-  setBranch: (branch: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   user: { username: string; fullName: string; role: 'admin' | 'user' | 'demo' } | null;
   onLogout: () => void;
 }
 
-export default function Header({ branch, setBranch, searchQuery, setSearchQuery, user, onLogout }: HeaderProps) {
-  const [showBranches, setShowBranches] = useState(false);
+export default function Header({ searchQuery, setSearchQuery, user, onLogout }: HeaderProps) {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const branches = [
-    'Downtown Branch',
-    'Main Branch - New York',
-    'West End Boston',
-    'San Francisco Hub'
-  ];
 
   return (
     <header className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md border-b border-[#cbd5e1]/40 flex items-center justify-between h-16 px-8 select-none">
@@ -43,42 +34,6 @@ export default function Header({ branch, setBranch, searchQuery, setSearchQuery,
 
       {/* Right Actions */}
       <div className="flex items-center gap-5">
-        {/* Branch Selector Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowBranches(!showBranches)}
-            className="px-4 py-2 border border-[#cbd5e1] rounded-xl font-sans text-xs font-semibold text-[#191c1e] hover:bg-[#f2f4f6] transition-colors flex items-center gap-2 cursor-pointer"
-          >
-            <MapPin className="w-4 h-4 text-[#645efb]" />
-            <span>{branch}</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-[#45474c] transition-transform duration-200 ${showBranches ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showBranches && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowBranches(false)} />
-              <div className="absolute right-0 mt-1.5 w-56 bg-white border border-[#cbd5e1]/40 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-[#eceef0]">
-                {branches.map((b) => (
-                  <button
-                    key={b}
-                    onClick={() => {
-                      setBranch(b);
-                      setShowBranches(false);
-                    }}
-                    className={`w-full text-left px-4 py-3 font-sans text-xs font-medium cursor-pointer transition-colors ${
-                      branch === b
-                        ? 'bg-[#645efb]/10 text-[#645efb] font-semibold'
-                        : 'text-[#191c1e] hover:bg-[#f7f9fb]'
-                    }`}
-                  >
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
         {/* Notifications and Profile */}
         <div className="flex items-center gap-3 pl-4 border-l border-[#cbd5e1]/40">
           <button className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#eceef0] text-[#45474c] transition-all cursor-pointer">

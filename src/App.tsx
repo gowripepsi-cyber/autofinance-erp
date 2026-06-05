@@ -217,7 +217,10 @@ const INITIAL_USERS: User[] = [
     address: 'New York HQ Office',
     mobileNumber: '+15550100',
     role: 'admin',
-    status: 'Approved'
+    status: 'Approved',
+    subscriptionTier: 'Enterprise',
+    subscriptionStatus: 'Active',
+    subscriptionEndDate: '2030-12-31'
   },
   {
     id: 'USR-002',
@@ -229,7 +232,10 @@ const INITIAL_USERS: User[] = [
     address: 'Downtown NYC Office',
     mobileNumber: '+15550200',
     role: 'user',
-    status: 'Approved'
+    status: 'Approved',
+    subscriptionTier: 'Pro',
+    subscriptionStatus: 'Active',
+    subscriptionEndDate: '2027-06-30'
   }
 ];
 
@@ -244,7 +250,10 @@ function mapUserFromDB(u: any): User {
     address: u.address || '',
     mobileNumber: u.mobile_number || '',
     role: u.role,
-    status: u.status
+    status: u.status,
+    subscriptionTier: u.subscription_tier || 'Free',
+    subscriptionStatus: u.subscription_status || 'Active',
+    subscriptionEndDate: u.subscription_end_date || ''
   };
 }
 
@@ -259,7 +268,10 @@ function mapUserToDB(u: User): any {
     address: u.address,
     mobile_number: u.mobileNumber,
     role: u.role,
-    status: u.status
+    status: u.status,
+    subscription_tier: u.subscriptionTier || 'Free',
+    subscription_status: u.subscriptionStatus || 'Active',
+    subscription_end_date: u.subscriptionEndDate || null
   };
 }
 
@@ -450,28 +462,35 @@ export default function App() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const isDb = supabaseUrl && supabaseUrl !== 'YOUR_SUPABASE_URL' && supabaseUrl.startsWith('http');
 
+      const enrichedUser: User = {
+        ...newUser,
+        subscriptionTier: 'Free',
+        subscriptionStatus: 'Trial',
+        subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      };
+
       if (isDb) {
         const { data: existing } = await supabase
           .from('users')
           .select('username')
-          .eq('username', newUser.username)
+          .eq('username', enrichedUser.username)
           .maybeSingle();
 
         if (existing) {
           return { success: false, message: "Username is already taken." };
         }
 
-        const { error } = await supabase.from('users').insert([mapUserToDB(newUser)]);
+        const { error } = await supabase.from('users').insert([mapUserToDB(enrichedUser)]);
         if (error) throw error;
       } else {
-        const exists = allUsers.some(u => u.username === newUser.username);
+        const exists = allUsers.some(u => u.username === enrichedUser.username);
         if (exists) {
           return { success: false, message: "Username is already taken." };
         }
       }
 
-      setAllUsers([...allUsers, newUser]);
-      return { success: true, message: `Account request submitted for ${newUser.fullName}! Pending admin approval.` };
+      setAllUsers([...allUsers, enrichedUser]);
+      return { success: true, message: `Account request submitted for ${enrichedUser.fullName}! Pending admin approval.` };
     } catch (err: any) {
       console.error(err);
       return { success: false, message: err.message || "Failed to submit registration request." };
@@ -496,6 +515,41 @@ export default function App() {
     } catch (err) {
       console.error(err);
       showNotification("Failed to update user status in cloud database.", "info");
+    }
+  };
+
+  const handleUpdateUserSubscription = async (
+    userId: string,
+    tier: 'Free' | 'Basic' | 'Pro' | 'Enterprise',
+    status: 'Active' | 'Inactive' | 'Trial' | 'Expired',
+    endDate: string
+  ) => {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const isDb = supabaseUrl && supabaseUrl !== 'YOUR_SUPABASE_URL' && supabaseUrl.startsWith('http');
+
+      if (isDb) {
+        const { error } = await supabase
+          .from('users')
+          .update({
+            subscription_tier: tier,
+            subscription_status: status,
+            subscription_end_date: endDate || null
+          })
+          .eq('id', userId);
+        if (error) throw error;
+      }
+
+      setAllUsers(allUsers.map(u => u.id === userId ? {
+        ...u,
+        subscriptionTier: tier,
+        subscriptionStatus: status,
+        subscriptionEndDate: endDate
+      } : u));
+      showNotification("User subscription parameters updated.");
+    } catch (err) {
+      console.error(err);
+      showNotification("Failed to update subscription in cloud database.", "info");
     }
   };
 
@@ -577,7 +631,6 @@ export default function App() {
 
   // Layout routing States
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
-  const [branch, setBranch] = useState<string>('Main Branch - New York');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
 
@@ -840,8 +893,8 @@ export default function App() {
                 <tr className="border-b border-[#cbd5e1]/30 text-[#45474c] uppercase font-bold text-[10px] tracking-wider bg-[#f7f9fb]">
                   <th className="py-3.5 px-4 rounded-l-xl">User &amp; Business</th>
                   <th className="py-3.5 px-4">Contact Detail</th>
-                  <th className="py-3.5 px-4">Office Address</th>
-                  <th className="py-3.5 px-4">User Status</th>
+                  <th className="py-3.5 px-4">User Role</th>
+                  <th className="py-3.5 px-4">Subscription</th>
                   <th className="py-3.5 px-4">Account Status</th>
                   <th className="py-3.5 px-4 text-right rounded-r-xl">Actions</th>
                 </tr>
@@ -852,13 +905,11 @@ export default function App() {
                     <td className="py-4 px-4">
                       <div className="font-bold text-[#091426]">{u.fullName}</div>
                       <div className="text-[10px] text-[#645efb] font-bold mt-0.5">{u.businessName || 'No Business Entity'}</div>
+                      <div className="text-[9px] text-[#45474c] mt-0.5 max-w-[150px] truncate" title={u.address}>{u.address || 'No Address'}</div>
                     </td>
                     <td className="py-4 px-4">
                       <div className="font-medium text-[#191c1e]">{u.email}</div>
                       <div className="text-[10px] text-[#45474c] mt-0.5 font-mono">{u.mobileNumber || 'No Phone Number'}</div>
-                    </td>
-                    <td className="py-4 px-4 text-[#45474c] max-w-[150px] truncate" title={u.address}>
-                      {u.address || 'No Address'}
                     </td>
                     <td className="py-4 px-4">
                       {u.username === 'admin' ? (
@@ -874,6 +925,59 @@ export default function App() {
                           <option value="demo">Demo</option>
                         </select>
                       )}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex flex-col gap-1.5 min-w-[125px]">
+                        {/* Subscription Tier Selector */}
+                        <select
+                          value={u.subscriptionTier || 'Free'}
+                          onChange={(e) => handleUpdateUserSubscription(u.id, e.target.value as any, u.subscriptionStatus || 'Active', u.subscriptionEndDate || '')}
+                          disabled={u.username === 'admin'}
+                          className={`border rounded-xl px-2 py-1 font-sans text-[10px] font-bold cursor-pointer outline-none transition-colors border-none w-fit ${
+                            u.subscriptionTier === 'Enterprise' ? 'bg-indigo-500/10 text-indigo-700 hover:bg-indigo-500/20' :
+                            u.subscriptionTier === 'Pro' ? 'bg-violet-500/10 text-violet-700 hover:bg-violet-500/20' :
+                            u.subscriptionTier === 'Basic' ? 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20' :
+                            'bg-slate-500/10 text-slate-700 hover:bg-slate-500/20'
+                          }`}
+                        >
+                          <option value="Free">Free</option>
+                          <option value="Basic">Basic</option>
+                          <option value="Pro">Pro</option>
+                          <option value="Enterprise">Enterprise</option>
+                        </select>
+
+                        {/* Subscription Status Selector */}
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${
+                            u.subscriptionStatus === 'Active' ? 'bg-emerald-500 animate-pulse' :
+                            u.subscriptionStatus === 'Trial' ? 'bg-blue-500' :
+                            'bg-rose-500'
+                          }`} />
+                          <select
+                            value={u.subscriptionStatus || 'Active'}
+                            onChange={(e) => handleUpdateUserSubscription(u.id, u.subscriptionTier || 'Free', e.target.value as any, u.subscriptionEndDate || '')}
+                            disabled={u.username === 'admin'}
+                            className="bg-transparent border-none font-sans text-[10px] font-bold text-[#191c1e] cursor-pointer outline-none w-fit p-0"
+                          >
+                            <option value="Active">Active</option>
+                            <option value="Trial">Trial</option>
+                            <option value="Expired">Expired</option>
+                            <option value="Inactive">Inactive</option>
+                          </select>
+                        </div>
+
+                        {/* Expiration Date Input */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] text-[#45474c] font-semibold uppercase tracking-wider">Expires:</span>
+                          <input
+                            type="date"
+                            value={u.subscriptionEndDate || ''}
+                            onChange={(e) => handleUpdateUserSubscription(u.id, u.subscriptionTier || 'Free', u.subscriptionStatus || 'Active', e.target.value)}
+                            disabled={u.username === 'admin'}
+                            className="bg-[#f2f4f6]/50 hover:bg-[#f2f4f6] px-1.5 py-0.5 rounded-lg border border-[#cbd5e1]/40 text-[9px] text-[#45474c] outline-none font-mono cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+                          />
+                        </div>
+                      </div>
                     </td>
                     <td className="py-4 px-4">
                       <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide ${
@@ -1013,6 +1117,7 @@ export default function App() {
         currentTab={currentTab} 
         setTab={setCurrentTab} 
         onNewTransaction={() => setIsTransactionModalOpen(true)} 
+        user={user}
       />
 
       {/* Main Container canvas flex-row */}
@@ -1020,8 +1125,6 @@ export default function App() {
         
         {/* Sync header navbar element */}
         <Header 
-          branch={branch} 
-          setBranch={setBranch} 
           searchQuery={searchQuery} 
           setSearchQuery={setSearchQuery} 
           user={user}
@@ -1059,6 +1162,7 @@ export default function App() {
                   transactions={transactions}
                   onAddNewTransaction={() => setIsTransactionModalOpen(true)}
                   onNavigateToTab={(tab) => setCurrentTab(tab)}
+                  user={user}
                 />
               )}
               {currentTab === 'vehicles' && (
@@ -1073,6 +1177,7 @@ export default function App() {
                   onAddCustomer={handleAddCustomer}
                   onUpdateCustomer={handleUpdateCustomer}
                   onDeleteCustomer={handleDeleteCustomer}
+                  user={user}
                 />
               )}
               {currentTab === 'loans' && (

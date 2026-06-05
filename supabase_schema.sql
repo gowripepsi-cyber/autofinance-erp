@@ -86,7 +86,10 @@ CREATE TABLE IF NOT EXISTS users (
     address TEXT,
     mobile_number TEXT,
     role TEXT CHECK (role IN ('admin', 'user', 'demo')) NULL, -- Nullable!
-    status TEXT CHECK (status IN ('Pending', 'Approved', 'Suspended')) DEFAULT 'Pending'
+    status TEXT CHECK (status IN ('Pending', 'Approved', 'Suspended')) DEFAULT 'Pending',
+    subscription_tier TEXT CHECK (subscription_tier IN ('Free', 'Basic', 'Pro', 'Enterprise')) DEFAULT 'Free',
+    subscription_status TEXT CHECK (subscription_status IN ('Active', 'Inactive', 'Trial', 'Expired')) DEFAULT 'Active',
+    subscription_end_date DATE
 );
 
 -- 6. Seed Initial Data
@@ -112,7 +115,7 @@ INSERT INTO transactions (id, customer, vehicle, amount, status, date) VALUES
 ('#TXN-88222', 'Eleanor Shellstrop', '2023 Honda Civic', 410.00, 'Pending', '2023-10-20')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO users (id, username, email, password, full_name, business_name, address, mobile_number, role, status) VALUES
-('USR-001', 'admin', 'admin@autofinance.erp', 'admin123', 'Admin User', 'AutoFinance HQ', 'New York Office', '+15550100', 'admin', 'Approved'),
-('USR-002', 'staff', 'staff@autofinance.erp', 'staff123', 'Staff Member', 'AutoFinance NYC Branch', 'New York Office', '+15550200', 'user', 'Approved')
+INSERT INTO users (id, username, email, password, full_name, business_name, address, mobile_number, role, status, subscription_tier, subscription_status, subscription_end_date) VALUES
+('USR-001', 'admin', 'admin@autofinance.erp', 'admin123', 'Admin User', 'AutoFinance HQ', 'New York Office', '+15550100', 'admin', 'Approved', 'Enterprise', 'Active', '2030-12-31'),
+('USR-002', 'staff', 'staff@autofinance.erp', 'staff123', 'Staff Member', 'AutoFinance NYC Branch', 'New York Office', '+15550200', 'user', 'Approved', 'Pro', 'Active', '2027-06-30')
 ON CONFLICT (id) DO NOTHING;

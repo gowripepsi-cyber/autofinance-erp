@@ -13,22 +13,28 @@ import {
   Settings, 
   Plus 
 } from 'lucide-react';
+import { User } from '../types';
 
 interface SidebarProps {
   currentTab: string;
   setTab: (tab: string) => void;
   onNewTransaction: () => void;
+  user: User | null;
 }
 
-export default function Sidebar({ currentTab, setTab, onNewTransaction }: SidebarProps) {
+export default function Sidebar({ currentTab, setTab, onNewTransaction, user }: SidebarProps) {
+  const isAdmin = user?.role === 'admin' || user?.username === 'admin';
+
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'customers', name: 'Customers', icon: Users },
-    { id: 'vehicles', name: 'Vehicles', icon: Car },
-    { id: 'loans', name: 'Loans', icon: CreditCard },
+    ...(!isAdmin ? [
+      { id: 'vehicles', name: 'Vehicles', icon: Car },
+      { id: 'loans', name: 'Loans', icon: CreditCard },
+    ] : []),
     { id: 'cash-bank', name: 'Cash & Bank', icon: Landmark },
     { id: 'profit-tracking', name: 'Profit Tracking', icon: TrendingUp },
-    { id: 'master-control', name: 'Master Control', icon: Settings },
+    ...(isAdmin ? [{ id: 'master-control', name: 'Master Control', icon: Settings }] : []),
   ];
 
   return (
