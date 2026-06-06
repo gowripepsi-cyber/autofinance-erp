@@ -14,14 +14,16 @@ import {
   Mail, 
   TrendingUp,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  CheckCircle
 } from 'lucide-react';
-import { Transaction, Vehicle, Customer, User } from '../types';
+import { Transaction, Vehicle, Customer, User, Loan } from '../types';
 
 interface DashboardProps {
   vehicles: Vehicle[];
   customers: Customer[];
   transactions: Transaction[];
+  loans: Loan[];
   onAddNewTransaction: () => void;
   onNavigateToTab: (tab: string) => void;
   user: User | null;
@@ -31,6 +33,7 @@ export default function DashboardScreen({
   vehicles, 
   customers, 
   transactions, 
+  loans,
   onAddNewTransaction, 
   onNavigateToTab,
   user
@@ -38,33 +41,47 @@ export default function DashboardScreen({
 
   const isAdmin = user?.role === 'admin' || user?.username === 'admin';
 
-  // Dynamic calculations based on local state list
-  const totalVehiclesCount = 1200 + vehicles.length * 42; 
-  const totalCustomersCount = 3100 + customers.length * 10;
-  const activeFinanceValue = 42.8; // $42.8M
-  const totalBalance = 8.2; // $8.2M
+  // Format helper for Indian Rupees
+  const formatCurrency = (val: number, maxDigits = 0) => {
+    return val.toLocaleString('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: maxDigits
+    });
+  };
+
+  // Dynamic calculations based on state lists
+  const totalVehiclesCount = vehicles.length; 
+  const totalCustomersCount = customers.length;
   
-  // Calculate overdue values
-  const overdueDues = 142; // in K
+  const activeLoans = loans.filter(l => l.status === 'Active');
+  const activeFinanceValue = activeLoans.reduce((sum, l) => sum + l.loanAmount, 0);
+
+  const totalBalance = transactions
+    .filter(t => t.status === 'Success')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const overdueDues = loans.reduce((sum, l) => sum + (l.emiCalculated * (l.defaultInstances || 0)), 0);
+  const overdueCount = loans.filter(l => (l.defaultInstances || 0) > 0).length;
 
   // KPI metadata
   const kpis = [
     {
       title: 'Total Vehicles',
       value: totalVehiclesCount.toLocaleString(),
-      trend: '+4.2%',
+      trend: totalVehiclesCount > 0 ? '+4.2%' : '0%',
       trendType: 'up',
-      subtitle: 'Across 12 branches',
+      subtitle: 'In fleet inventory',
       icon: Car,
       color: 'bg-[#eceef0] text-[#091426]',
       tabLink: 'vehicles'
     },
     {
       title: 'Active Finance',
-      value: `$${activeFinanceValue}M`,
-      trend: '+12%',
+      value: formatCurrency(activeFinanceValue),
+      trend: activeFinanceValue > 0 ? '+12%' : '0%',
       trendType: 'up',
-      subtitle: '942 Active contracts',
+      subtitle: `${activeLoans.length} Active contract${activeLoans.length === 1 ? '' : 's'}`,
       icon: Wallet,
       color: 'bg-[#eceef0] text-[#4b41e1]',
       tabLink: 'loans'
@@ -72,29 +89,29 @@ export default function DashboardScreen({
     {
       title: 'Total Customers',
       value: totalCustomersCount.toLocaleString(),
-      trend: '+1.8%',
+      trend: totalCustomersCount > 0 ? '+1.8%' : '0%',
       trendType: 'up',
-      subtitle: '82% Retention rate',
+      subtitle: 'Active borrower accounts',
       icon: Users,
       color: 'bg-[#eceef0] text-[#645efb]',
       tabLink: 'customers'
     },
     {
       title: 'Total Balance',
-      value: `$${totalBalance}M`,
-      trend: '+8.4%',
+      value: formatCurrency(totalBalance),
+      trend: totalBalance > 0 ? '+8.4%' : '0%',
       trendType: 'up',
-      subtitle: 'In liquid reserves',
+      subtitle: 'Available ledger balance',
       icon: PiggyBank,
       color: 'bg-[#eceef0] text-[#28a094]',
       tabLink: 'cash-bank'
     },
     {
       title: 'Overdue Dues',
-      value: `$${overdueDues}K`,
-      trend: '-2.1%',
-      trendType: 'down',
-      subtitle: '48 Late accounts',
+      value: formatCurrency(overdueDues),
+      trend: overdueDues > 0 ? '+2.1%' : '0%',
+      trendType: overdueDues > 0 ? 'up' : 'down',
+      subtitle: `${overdueCount} Late account${overdueCount === 1 ? '' : 's'}`,
       icon: AlertTriangle,
       color: 'bg-[#ffdad6] text-[#ba1a1a]',
       isAlert: true,
@@ -119,33 +136,20 @@ export default function DashboardScreen({
     { month: 'Jun', target: 98, actual: 95 }
   ];
 
-  // Priority Dunning list with actual avatars
-  const dunningList = [
-    {
-      name: 'Alice Thompson',
-      amount: '$3,420',
-      days: '64 Days',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBnXlMgq-MzWQYeHX3gSwXiAeOyhJCJFajxyBLbt5h6LJrbcokiI1xIKTkx11x6dzB6e60xFz4wMusC90XCiZNzIACGAbAZm34opExyapApZJoXh1GXN6Lt5L81_QDP6TsQDSSEod4KnO_FrcdcHf1OmvMjNBrtjshh5cBppclgx_Ct1Y3GidN6NtPwtk9fCshfnoEAaEyHfiadiTqvxfYPgGrveA5-cr4AVKSOYaiMgTPH3jlgQFthRlrsxCOzwf9-1Kzw6pQs4hE',
-      type: 'call',
-      contact: '+1 617-555-0143'
-    },
-    {
-      name: 'Gregory House',
-      amount: '$1,200',
-      days: '14 Days',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBRpgs7Nygdbcs1xdQ8B_-lgFF7YwWBiYcT7OAxmll-BOrzzfXbMfVBg2QR_V-UA4IawO_NH43E8gyH1mqvabtZGhAdhJArm3vFYP2O8G7-6aoCUxpTyMLyhpeb3vUKDsxSFL8iWCVlkPS0uLnMPhNvaZ1lO73DDWQkng7eF8_x-a4auQsiB2QgDgfwFdAb-x-8ax4SQ3Aa5KcboYWA9BCiFGv3rpwXl5_soFqGqKNr7C22JnBymy18UAW-mrOzNE0YChglPd2mz8Y',
-      type: 'mail',
-      contact: 'g.house@diagnostics.org'
-    },
-    {
-      name: 'Linda Belcher',
-      amount: '$850',
-      days: '9 Days',
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuACod7svGMNnPdlDWGBL8hiqsr0hfRQisP0vPmoA1L-nnbLS5Mt8QjQcLggHbI8LYzjcTL9aeZWuSnyZbeZlFjenujzxcWCaWRPQU12ZP4uzNmlS8D0VK2H86JRHiaYBeYA1JARbMI2tK2SJRaCA9LZHMmuC1mZykYPWUP68vmiexSw1X1d8K6BU0xQgDX2zs4cS5bA4NVU-ecY3a80uh3Wxq6tctIatpbjowdMd7LdNukQ3RLFPAbFh10rnAc4a5XVuZJmXCIwvgo',
-      type: 'mail',
-      contact: 'linda@bobsburgers.net'
-    }
-  ];
+  // Priority Dunning list built dynamically from actual defaults
+  const dynamicDunningList = loans
+    .filter(l => (l.defaultInstances || 0) > 0)
+    .map(loan => {
+      const customer = customers.find(c => c.id === loan.customerId);
+      return {
+        name: loan.customerName,
+        amount: formatCurrency(loan.emiCalculated * loan.defaultInstances),
+        days: `${loan.defaultInstances * 30} Days`,
+        avatar: customer?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBRpgs7Nygdbcs1xdQ8B_-lgFF7YwWBiYcT7OAxmll-BOrzzfXbMfVBg2QR_V-UA4IawO_NH43E8gyH1mqvabtZGhAdhJArm3vFYP2O8G7-6aoCUxpTyMLyhpeb3vUKDsxSFL8iWCVlkPS0uLnMPhNvaZ1lO73DDWQkng7eF8_x-a4auQsiB2QgDgfwFdAb-x-8ax4SQ3Aa5KcboYWA9BCiFGv3rpwXl5_soFqGqKNr7C22JnBymy18UAW-mrOzNE0YChglPd2mz8Y',
+        type: (loan.defaultInstances > 1 ? 'call' : 'mail') as 'call' | 'mail',
+        contact: customer?.phoneNumber || '+91 9999999999'
+      };
+    });
 
   return (
     <motion.div
@@ -329,7 +333,7 @@ export default function DashboardScreen({
                       <td className="px-6 py-4 text-xs font-medium text-[#191c1e]">{txn.customer}</td>
                       {!isAdmin && <td className="px-6 py-4 text-xs text-[#45474c]">{txn.vehicle}</td>}
                       <td className="px-6 py-4 text-xs font-black text-[#091426]">
-                        {txn.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {txn.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold ${
@@ -368,37 +372,49 @@ export default function DashboardScreen({
             <div className="px-6 py-4 border-b border-[#cbd5e1]/40 bg-[#f7f9fb]/50">
               <h4 className="font-headline text-md font-bold text-[#091426]">Dunning Priority</h4>
             </div>
-            <div className="flex-1 p-5 space-y-4 max-h-[360px] overflow-y-auto custom-scrollbar">
-              {dunningList.map((customer, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex items-center gap-4 p-3.5 rounded-xl border transition-all ${
-                    idx === 0 
-                      ? 'bg-[#ffdad6]/20 border-[#ffdad6] shadow-sm' 
-                      : 'bg-[#f7f9fb] border-[#cbd5e1]/30 hover:border-[#645efb]/40'
-                  }`}
-                >
-                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#cbd5e1]/50 shadow-sm">
-                    <img alt={customer.name} className="w-full h-full object-cover" src={customer.avatar} />
+            <div className="flex-1 p-5 space-y-4 max-h-[360px] overflow-y-auto custom-scrollbar flex flex-col justify-start">
+              {dynamicDunningList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full min-h-[220px] text-center text-xs text-[#45474c] font-medium gap-3 py-6">
+                  <div className="p-3 bg-emerald-50 text-[#28a094] rounded-2xl">
+                    <CheckCircle className="w-7 h-7" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-sans text-xs font-bold text-[#091426]">{customer.name}</p>
-                    <p className={`font-sans text-[11px] font-bold mt-0.5 ${idx === 0 ? 'text-[#ba1a1a]' : 'text-[#45474c]'}`}>
-                      {customer.amount} Overdue <span className="font-medium">({customer.days})</span>
-                    </p>
+                  <div>
+                    <p className="font-bold text-[#091426] text-sm">No Overdue Accounts</p>
+                    <p className="text-[11px] text-[#45474c] mt-1">All customer payments are currently up to date.</p>
                   </div>
-                  <button 
-                    onClick={() => alert(`Initiating priority contact (${customer.type}) to ${customer.name} via ${customer.contact}`)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                      customer.type === 'call' 
-                        ? 'bg-[#ba1a1a]/10 hover:bg-[#ba1a1a] text-[#ba1a1a] hover:text-white' 
-                        : 'bg-[#645efb]/10 hover:bg-[#645efb] text-[#645efb] hover:text-white'
+                </div>
+              ) : (
+                dynamicDunningList.map((customer, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`flex items-center gap-4 p-3.5 rounded-xl border transition-all ${
+                      idx === 0 
+                        ? 'bg-[#ffdad6]/20 border-[#ffdad6] shadow-sm' 
+                        : 'bg-[#f7f9fb] border-[#cbd5e1]/30 hover:border-[#645efb]/40'
                     }`}
                   >
-                    {customer.type === 'call' ? <Phone className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
-                  </button>
-                </div>
-              ))}
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#cbd5e1]/50 shadow-sm">
+                      <img alt={customer.name} className="w-full h-full object-cover" src={customer.avatar} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-sans text-xs font-bold text-[#091426]">{customer.name}</p>
+                      <p className={`font-sans text-[11px] font-bold mt-0.5 ${idx === 0 ? 'text-[#ba1a1a]' : 'text-[#45474c]'}`}>
+                        {customer.amount} Overdue <span className="font-medium">({customer.days})</span>
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => alert(`Initiating priority contact (${customer.type}) to ${customer.name} via ${customer.contact}`)}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                        customer.type === 'call' 
+                          ? 'bg-[#ba1a1a]/10 hover:bg-[#ba1a1a] text-[#ba1a1a] hover:text-white' 
+                          : 'bg-[#645efb]/10 hover:bg-[#645efb] text-[#645efb] hover:text-white'
+                      }`}
+                    >
+                      {customer.type === 'call' ? <Phone className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
             <div className="p-4 border-t border-[#cbd5e1]/20 bg-[#f7f9fb]/40 text-center">
               <button 

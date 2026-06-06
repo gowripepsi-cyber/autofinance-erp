@@ -26,47 +26,48 @@ interface VehiclesScreenProps {
 }
 
 export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScreenProps) {
-  // Local state for the Purchase form entry
-  const [make, setMake] = useState('Mercedes-Benz');
-  const [model, setModel] = useState('C-Class');
-  const [year, setYear] = useState(2023);
-  const [registrationNo, setRegistrationNo] = useState('ABC-1234');
-  const [vin, setVin] = useState('WDD1234567M891023');
-  const [engineNo, setEngineNo] = useState('M274-DE20');
+  // Local state for the Purchase form entry (cleared of dummy/pre-filled values)
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [year, setYear] = useState<number | ''>('');
+  const [registrationNo, setRegistrationNo] = useState('');
+  const [vin, setVin] = useState('');
+  const [engineNo, setEngineNo] = useState('');
   const [fuelType, setFuelType] = useState<'Petrol' | 'Diesel' | 'Electric (EV)' | 'Hybrid'>('Petrol');
-  const [purchasePrice, setPurchasePrice] = useState(38000);
-  const [salePrice, setSalePrice] = useState(42250);
+  const [purchasePrice, setPurchasePrice] = useState<number | ''>('');
+  const [salePrice, setSalePrice] = useState<number | ''>('');
 
-  const [purchaseDate, setPurchaseDate] = useState('2023-10-25');
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [fundingAccount, setFundingAccount] = useState('Main Operating Account (...4492)');
-  const [sellerDetails, setSellerDetails] = useState('Premium Star Dealership');
-  const [rcReceived, setRcReceived] = useState(true);
-  const [activeInsurance, setActiveInsurance] = useState(true);
+  const [sellerDetails, setSellerDetails] = useState('');
+  const [rcReceived, setRcReceived] = useState(false);
+  const [activeInsurance, setActiveInsurance] = useState(false);
 
-  // Gallery main image (defaults to the premium car)
-  const [mainImage, setMainImage] = useState('https://lh3.googleusercontent.com/aida-public/AB6AXuBaTwRYF4nGGvEyKAXeQ2TJxh85EwhuOYeA8e67uEzFe3kBYfhP6G0Di6hPLILSq1x-iplCJYGIzaEA-kVQQp7ry0LOGjay68UeV09NQl_Q6MQG1tzYIuDRowxiGnTPHqCnKF2ruLlHRIg80uOl8Cfx6vjiyiCcBzx07AWtQD5lj9bxdaEqLdLF4xojGVims1OgBOgEXEj0PdUk4O3fO0VQy9zrMTOslUwsm6EaZ105HllOTodUt9Fy4CUTYbC6WLsR3Cbn2NFbDw8');
+  // Gallery main image (defaults to empty)
+  const [mainImage, setMainImage] = useState('');
 
-  // Attachment uploads list
-  const [attachments, setAttachments] = useState<{ name: string; size: string }[]>([
-    { name: 'Original_RC_Doc.pdf', size: '1.2 MB' }
-  ]);
+  // Attachment uploads list (defaults to empty)
+  const [attachments, setAttachments] = useState<{ name: string; size: string }[]>([]);
 
   // Handle mock image selection or replacement
   const handleReplaceImage = () => {
-    const newUrl = prompt("Enter a direct hotlinked image URL or use our premium default:", mainImage);
-    if (newUrl && newUrl.trim() !== "") {
-      setMainImage(newUrl);
+    const newUrl = prompt("Enter a direct hotlinked image URL:", mainImage);
+    if (newUrl !== null) {
+      setMainImage(newUrl.trim());
     }
   };
 
-  // Live ROI Calculations
+  // Live ROI Calculations (handling empty/string inputs robustly)
   const calculatedProfit = useMemo(() => {
-    return Math.max(0, salePrice - purchasePrice);
+    const sale = Number(salePrice) || 0;
+    const purchase = Number(purchasePrice) || 0;
+    return Math.max(0, sale - purchase);
   }, [purchasePrice, salePrice]);
 
   const calculatedROI = useMemo(() => {
-    if (purchasePrice <= 0) return 0;
-    return Number(((calculatedProfit / purchasePrice) * 100).toFixed(1));
+    const purchase = Number(purchasePrice) || 0;
+    if (purchase <= 0) return 0;
+    return Number(((calculatedProfit / purchase) * 100).toFixed(1));
   }, [purchasePrice, calculatedProfit]);
 
   // Handle scan mock
@@ -86,19 +87,19 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
       id: `VEH-${Math.floor(100 + Math.random() * 900)}`,
       make,
       model,
-      year: Number(year),
+      year: Number(year) || new Date().getFullYear(),
       registrationNo,
       vin,
       engineNo,
       fuelType,
-      purchasePrice: Number(purchasePrice),
-      salePrice: Number(salePrice),
+      purchasePrice: Number(purchasePrice) || 0,
+      salePrice: Number(salePrice) || 0,
       purchaseDate,
       fundingAccount,
       sellerDetails,
       rcReceived,
       activeInsurance,
-      image: mainImage,
+      image: mainImage || 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80',
       status: 'Completed'
     };
 
@@ -107,16 +108,21 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
 
   const handleReset = () => {
     if (confirm("Are you sure you want to discard your draft?")) {
-      setMake('Mercedes-Benz');
-      setModel('C-Class');
-      setYear(2023);
-      setRegistrationNo('ABC-1234');
-      setVin('WDD1234567M891023');
-      setEngineNo('M274-DE20');
-      setPurchasePrice(38000);
-      setSalePrice(42250);
-      setRcReceived(true);
-      setActiveInsurance(true);
+      setMake('');
+      setModel('');
+      setYear('');
+      setRegistrationNo('');
+      setVin('');
+      setEngineNo('');
+      setPurchasePrice('');
+      setSalePrice('');
+      setPurchaseDate(new Date().toISOString().split('T')[0]);
+      setFundingAccount('Main Operating Account (...4492)');
+      setSellerDetails('');
+      setRcReceived(false);
+      setActiveInsurance(false);
+      setMainImage('');
+      setAttachments([]);
     }
   };
 
@@ -245,7 +251,7 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Purchase Price ($)</label>
+                  <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Purchase Price (₹)</label>
                   <input
                     type="number"
                     value={purchasePrice}
@@ -254,7 +260,7 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Sale Price ($)</label>
+                  <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Sale Price (₹)</label>
                   <input
                     type="number"
                     value={salePrice}
@@ -351,12 +357,18 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
               onClick={handleReplaceImage}
               className="relative group cursor-pointer border-2 border-dashed border-[#cbd5e1] hover:border-[#645efb]/60 rounded-xl aspect-[4/3] flex flex-col items-center justify-center bg-[#f7f9fb]/50 overflow-hidden transition-all duration-300"
             >
-              <img 
-                className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300" 
-                src={mainImage} 
-                alt="Active Vehicle image"
-              />
-              <div className="absolute inset-0 bg-[#091426]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" />
+              {mainImage ? (
+                <img 
+                  className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300" 
+                  src={mainImage} 
+                  alt="Active Vehicle image"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-[#45474c]/60">
+                  <UploadCloud className="w-10 h-10 text-[#cbd5e1]" />
+                  <span className="font-sans text-xs font-bold uppercase tracking-wider">No Image Selected</span>
+                </div>
+              )}
               <div className="relative z-10 flex flex-col items-center gap-1.5 bg-white/70 backdrop-blur-sm p-3 py-2 rounded-full group-hover:bg-white/90 shadow-sm transition-all text-center">
                 <UploadCloud className="w-4.5 h-4.5 text-[#645efb]" />
                 <span className="font-sans text-[10px] font-bold text-[#091426] uppercase tracking-wide">Replace Main Image</span>
@@ -438,7 +450,7 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
               <p className="text-[#8590a6] text-[10px] font-bold uppercase tracking-widest">Profit Estimate (Live)</p>
               
               <div className="flex items-baseline gap-2.5 mt-1.5">
-                <span className="font-headline text-3xl font-black">{calculatedProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}</span>
+                <span className="font-headline text-3xl font-black">{calculatedProfit.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</span>
                 <span className={`text-xs font-bold bg-[#89f5e7] text-[#005049] px-2.5 py-0.5 rounded-full`}>
                   {calculatedROI >= 0 ? `+${calculatedROI}% ROI` : `${calculatedROI}% ROI`}
                 </span>
@@ -451,7 +463,7 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
                 </div>
                 <div className="flex justify-between text-xs font-medium text-white/70">
                   <span>Interest Cost Overhead</span>
-                  <span className="text-white font-semibold font-mono">$42.00/day</span>
+                  <span className="text-white font-semibold font-mono">₹3,000/day</span>
                 </div>
               </div>
             </div>
@@ -490,10 +502,10 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
                   <td className="px-6 py-4 font-bold text-[#191c1e]">{v.year} {v.make} {v.model}</td>
                   <td className="px-6 py-4 font-mono text-[#45474c]">{v.vin}</td>
                   <td className="px-6 py-4 font-black text-[#091426]">
-                    {v.purchasePrice.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                    {v.purchasePrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                   </td>
                   <td className="px-6 py-4 font-semibold text-[#645efb]">
-                    {v.salePrice.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                    {v.salePrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1 font-semibold px-2.5 py-0.5 rounded-full ${

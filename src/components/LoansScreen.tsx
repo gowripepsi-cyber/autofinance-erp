@@ -232,7 +232,7 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
                 >
                   {vehicles.map(v => (
                     <option key={v.id} value={v.id}>
-                      {v.year} {v.make} {v.model} - [VIN: {v.vin.substring(0, 7)}...] ({v.salePrice.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits:0 })})
+                      {v.year} {v.make} {v.model} - [VIN: {v.vin.substring(0, 7)}...] ({v.salePrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits:0 })})
                     </option>
                   ))}
                 </select>
@@ -249,7 +249,7 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Estimated Sale Price ($)</label>
+                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Estimated Sale Price (₹)</label>
                 <input
                   type="number"
                   value={salePrice}
@@ -259,7 +259,7 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Required Down Payment ($)</label>
+                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Required Down Payment (₹)</label>
                 <input
                   type="number"
                   value={downPayment}
@@ -269,7 +269,7 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-[#45474c] font-bold uppercase tracking-wider">Principled Loan Amount ($)</label>
+                <label className="block text-xs font-[#45474c] font-bold uppercase tracking-wider">Principled Loan Amount (₹)</label>
                 <input
                   type="number"
                   value={loanAmount}
@@ -305,7 +305,7 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Document flat fee ($)</label>
+                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Document flat fee (₹)</label>
                 <input
                   type="number"
                   value={docFee}
@@ -330,7 +330,7 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
                   <input
                     type="text"
                     readOnly
-                    value={calculatedEmi.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                    value={calculatedEmi.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                     className="w-full bg-[#645efb]/10 border-2 border-[#645efb] text-[#645efb] font-headline font-black text-sm rounded-xl pl-4 pr-11 py-2.5 outline-none"
                   />
                   <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#645efb]">
@@ -465,7 +465,7 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
               <div>
                 <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Monthly Loan EMI</p>
                 <h3 className="font-headline text-3xl font-black mt-1">
-                  {calculatedEmi.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                  {calculatedEmi.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                 </h3>
               </div>
 
@@ -473,13 +473,13 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
                 <div>
                   <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Total Payable</p>
                   <p className="font-headline text-md font-bold mt-0.5">
-                    {totalPayable.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                    {totalPayable.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                   </p>
                 </div>
                 <div>
                   <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Total Interest Out</p>
                   <p className="font-headline text-md font-bold mt-0.5">
-                    {totalInterest.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                    {totalInterest.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                   </p>
                 </div>
               </div>
@@ -512,13 +512,13 @@ export default function LoansScreen({ vehicles, customers, loans, onAddLoan }: L
                     <tr key={idx} className="hover:bg-[#f7f9fb] transition-colors">
                       <td className="py-2 font-bold text-[#645efb]">{line.num}</td>
                       <td className="py-2 text-[#091426]">
-                        {line.principal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {line.principal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                       </td>
                       <td className="py-2 text-[#45474c]">
-                        {line.interest.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {line.interest.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                       </td>
                       <td className="py-2 font-mono text-[#091426]">
-                        {line.balance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {line.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                       </td>
                     </tr>
                   ))}

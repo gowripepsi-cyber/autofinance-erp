@@ -748,7 +748,7 @@ export default function App() {
       const { error: tError } = await supabase.from('transactions').insert([mapTransactionToDB(autoTxn)]);
       if (tError) throw tError;
 
-      showNotification(`Loan context created for ${newLoan.customerName}! EMI calculated at $${newLoan.emiCalculated}/month.`);
+      showNotification(`Loan context created for ${newLoan.customerName}! EMI calculated at ${newLoan.emiCalculated.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}/month.`);
     } catch (err) {
       console.error("Database save failed, updated locally only:", err);
       showNotification("Logged loan context locally (offline fallback mode).", "info");
@@ -771,85 +771,115 @@ export default function App() {
     }
   };
 
+  // Helper currency formatter for Indian Rupees
+  const formatCurrency = (val: number, maxDigits = 0) => {
+    return val.toLocaleString('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: maxDigits
+    });
+  };
+
   // Render non-form informational screens beautifully matching aesthetic
-  const renderCashBankScreen = () => (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="border-b border-[#cbd5e1]/40 pb-4">
-        <h2 className="font-headline text-3xl font-black text-[#091426]">Cash &amp; Bank Ledger</h2>
-        <p className="text-xs text-[#45474c] font-semibold uppercase tracking-wider mt-1">Enterprise Liquidity Accounts</p>
-      </div>
+  const renderCashBankScreen = () => {
+    const totalBalance = transactions
+      .filter(t => t.status === 'Success')
+      .reduce((sum, t) => sum + t.amount, 0);
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1]/40 shadow-sm">
-          <p className="text-[11px] font-bold text-[#45474c] uppercase">Operating Checking</p>
-          <span className="text-2xl font-black text-[#091426] block mt-1">$4,124,500</span>
-          <span className="text-[10px] text-[#28a094] font-bold block mt-2">Active Reconciled</span>
-        </div>
-        <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1]/40 shadow-sm">
-          <p className="text-[11px] font-bold text-[#45474c] uppercase">Secondary Petty Reserve</p>
-          <span className="text-2xl font-black text-[#091426] block mt-1">$2,980,100</span>
-          <span className="text-[10px] text-[#28a094] font-bold block mt-2">Active Reconciled</span>
-        </div>
-        <div className="bg-[#091426] p-6 rounded-2xl text-white">
-          <p className="text-[11px] font-bold text-white/60 uppercase">Aggregated Liquid Reserve</p>
-          <span className="text-2xl font-headline font-black block mt-1">$8.2M</span>
-          <span className="text-[10px] text-[#89f5e7] font-bold block mt-2">Target Liquidity Compliant</span>
-        </div>
-      </div>
+    const checkingBalance = totalBalance * 0.6;
+    const reserveBalance = totalBalance * 0.4;
 
-      <div className="bg-white rounded-2xl border border-[#cbd5e1]/40 p-6 shadow-sm">
-        <h3 className="font-headline text-md font-bold text-[#091426] mb-4">Branch Ledger Audits</h3>
-        <div className="space-y-3 font-sans text-xs">
-          <div className="flex justify-between p-3 bg-[#f7f9fb] rounded-xl border border-[#cbd5e1]/30">
-            <span className="font-semibold text-[#091426]">Main Branch - New York Ledger Balance</span>
-            <span className="font-bold text-[#645efb]">$3,420,120</span>
+    const mainBranchBalance = totalBalance * 0.5;
+    const downtownBranchBalance = totalBalance * 0.35;
+    const pettyVaultBalance = totalBalance * 0.15;
+
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <div className="border-b border-[#cbd5e1]/40 pb-4">
+          <h2 className="font-headline text-3xl font-black text-[#091426]">Cash &amp; Bank Ledger</h2>
+          <p className="text-xs text-[#45474c] font-semibold uppercase tracking-wider mt-1">Enterprise Liquidity Accounts</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1]/40 shadow-sm">
+            <p className="text-[11px] font-bold text-[#45474c] uppercase">Operating Checking</p>
+            <span className="text-2xl font-black text-[#091426] block mt-1">{formatCurrency(checkingBalance)}</span>
+            <span className="text-[10px] text-[#28a094] font-bold block mt-2">Active Reconciled</span>
           </div>
-          <div className="flex justify-between p-3 bg-[#f7f9fb] rounded-xl border border-[#cbd5e1]/30">
-            <span className="font-semibold text-[#091426]">Downtown Branch Ledger Balance</span>
-            <span className="font-bold text-[#645efb]">$2,904,400</span>
+          <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1]/40 shadow-sm">
+            <p className="text-[11px] font-bold text-[#45474c] uppercase">Secondary Petty Reserve</p>
+            <span className="text-2xl font-black text-[#091426] block mt-1">{formatCurrency(reserveBalance)}</span>
+            <span className="text-[10px] text-[#28a094] font-bold block mt-2">Active Reconciled</span>
           </div>
-          <div className="flex justify-between p-3 bg-[#f7f9fb] rounded-xl border border-[#cbd5e1]/30">
-            <span className="font-semibold text-[#091426]">Boston Petty Vault Balance</span>
-            <span className="font-bold text-[#645efb]">$1,875,480</span>
+          <div className="bg-[#091426] p-6 rounded-2xl text-white">
+            <p className="text-[11px] font-bold text-white/60 uppercase">Aggregated Liquid Reserve</p>
+            <span className="text-2xl font-headline font-black block mt-1">{formatCurrency(totalBalance)}</span>
+            <span className="text-[10px] text-[#89f5e7] font-bold block mt-2">Target Liquidity Compliant</span>
           </div>
         </div>
-      </div>
-    </motion.div>
-  );
 
-  const renderProfitTrackingScreen = () => (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="border-b border-[#cbd5e1]/40 pb-4">
-        <h2 className="font-headline text-3xl font-black text-[#091426]">Profit Analytics &amp; Hold Cost</h2>
-        <p className="text-xs text-[#45474c] font-semibold uppercase tracking-wider mt-1 font-mono">Statistical yield projections</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1]/40 shadow-sm space-y-4">
-          <h3 className="font-headline text-md font-bold text-[#091426]">Holding Yield Metrics</h3>
-          <div className="space-y-3">
-            <div>
-              <p className="text-[10px] uppercase font-bold text-[#45474c]">Estimated hold cost rate</p>
-              <p className="text-sm font-semibold text-[#191c1e] mt-1">$42.00 / vehicle asset day</p>
+        <div className="bg-white rounded-2xl border border-[#cbd5e1]/40 p-6 shadow-sm">
+          <h3 className="font-headline text-md font-bold text-[#091426] mb-4">Branch Ledger Audits</h3>
+          <div className="space-y-3 font-sans text-xs">
+            <div className="flex justify-between p-3 bg-[#f7f9fb] rounded-xl border border-[#cbd5e1]/30">
+              <span className="font-semibold text-[#091426]">Main Branch - Mumbai Ledger Balance</span>
+              <span className="font-bold text-[#645efb]">{formatCurrency(mainBranchBalance)}</span>
             </div>
-            <div>
-              <p className="text-[10px] uppercase font-bold text-[#45474c]">Target holding turnaround</p>
-              <p className="text-sm font-semibold text-[#28a094] mt-1">45 Days holding maximum</p>
+            <div className="flex justify-between p-3 bg-[#f7f9fb] rounded-xl border border-[#cbd5e1]/30">
+              <span className="font-semibold text-[#091426]">Downtown Delhi Branch Ledger Balance</span>
+              <span className="font-bold text-[#645efb]">{formatCurrency(downtownBranchBalance)}</span>
+            </div>
+            <div className="flex justify-between p-3 bg-[#f7f9fb] rounded-xl border border-[#cbd5e1]/30">
+              <span className="font-semibold text-[#091426]">Bengaluru Petty Vault Balance</span>
+              <span className="font-bold text-[#645efb]">{formatCurrency(pettyVaultBalance)}</span>
             </div>
           </div>
         </div>
+      </motion.div>
+    );
+  };
 
-        <div className="bg-[#091426] text-white p-6 rounded-2xl flex flex-col justify-between">
-          <div>
-            <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Estimated holding profitability</p>
-            <span className="text-3xl font-headline font-black mt-2.5 block">$4,250 +12.4% ROI</span>
-            <p className="text-xs text-white/70 mt-3 font-medium">Auto-finance calculations are synchronized using real purchase logs.</p>
-          </div>
-          <span className="text-[10px] font-mono font-bold text-[#89f5e7] uppercase mt-4 block">ERP AUDIT VERIFIED</span>
+  const renderProfitTrackingScreen = () => {
+    const totalVehiclesProfit = vehicles.reduce((sum, v) => sum + Math.max(0, v.salePrice - v.purchasePrice), 0);
+    const totalVehiclesCost = vehicles.reduce((sum, v) => sum + v.purchasePrice, 0);
+    const avgROI = totalVehiclesCost > 0 ? (totalVehiclesProfit / totalVehiclesCost) * 100 : 0;
+
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <div className="border-b border-[#cbd5e1]/40 pb-4">
+          <h2 className="font-headline text-3xl font-black text-[#091426]">Profit Analytics &amp; Hold Cost</h2>
+          <p className="text-xs text-[#45474c] font-semibold uppercase tracking-wider mt-1 font-mono">Statistical yield projections</p>
         </div>
-      </div>
-    </motion.div>
-  );
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1]/40 shadow-sm space-y-4">
+            <h3 className="font-headline text-md font-bold text-[#091426]">Holding Yield Metrics</h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] uppercase font-bold text-[#45474c]">Estimated hold cost rate</p>
+                <p className="text-sm font-semibold text-[#191c1e] mt-1">{formatCurrency(3000)} / vehicle asset day</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold text-[#45474c]">Target holding turnaround</p>
+                <p className="text-sm font-semibold text-[#28a094] mt-1">45 Days holding maximum</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#091426] text-white p-6 rounded-2xl flex flex-col justify-between">
+            <div>
+              <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Estimated holding profitability</p>
+              <span className="text-3xl font-headline font-black mt-2.5 block">
+                {formatCurrency(totalVehiclesProfit)} {avgROI > 0 ? `+${avgROI.toFixed(1)}% ROI` : '0% ROI'}
+              </span>
+              <p className="text-xs text-white/70 mt-3 font-medium">Auto-finance calculations are synchronized using real purchase logs.</p>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-[#89f5e7] uppercase mt-4 block">ERP AUDIT VERIFIED</span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
 
   const renderMasterControlScreen = () => {
     const isAdmin = user?.role === 'admin' || user?.username === 'admin';
@@ -1160,6 +1190,7 @@ export default function App() {
                   vehicles={vehicles}
                   customers={customers}
                   transactions={transactions}
+                  loans={loans}
                   onAddNewTransaction={() => setIsTransactionModalOpen(true)}
                   onNavigateToTab={(tab) => setCurrentTab(tab)}
                   user={user}

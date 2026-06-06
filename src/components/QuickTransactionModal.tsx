@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, DollarSign, User, Car, Check } from 'lucide-react';
+import { X, IndianRupee, User, Car, Check } from 'lucide-react';
 import { Transaction } from '../types';
 
 interface QuickTransactionModalProps {
@@ -111,8 +111,8 @@ export default function QuickTransactionModal({ isOpen, onClose, onSubmit }: Qui
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider flex items-center gap-1.5">
-                  <DollarSign className="w-4 h-4 text-[#645efb]" />
-                  <span>Installment Transaction Amount ($)</span>
+                  <IndianRupee className="w-4 h-4 text-[#645efb]" />
+                  <span>Installment Transaction Amount (₹)</span>
                 </label>
                 <input
                   type="number"
