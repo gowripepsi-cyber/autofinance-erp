@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Car, 
   Info, 
@@ -18,17 +18,143 @@ import {
   Eye,
   Plus
 } from 'lucide-react';
-import { Vehicle } from '../types';
+import { Vehicle, Customer } from '../types';
 
 interface VehiclesScreenProps {
   vehicles: Vehicle[];
   onAddVehicle: (vehicle: Vehicle) => void;
+  customers: Customer[];
 }
 
-export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScreenProps) {
+export default function VehiclesScreen({ vehicles, onAddVehicle, customers }: VehiclesScreenProps) {
   // Local state for the Purchase form entry (cleared of dummy/pre-filled values)
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
+  const [makesMap, setMakesMap] = useState<Record<string, string[]>>({
+    'BMW': ['M4 Competition'],
+    'Audi': ['Q8 e-tron'],
+    'Mercedes-Benz': ['C-Class', 'E-Class']
+  });
+
+  const [make, setMake] = useState('BMW');
+  const [model, setModel] = useState('M4 Competition');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newMakeName, setNewMakeName] = useState('');
+  const [selectedModalMake, setSelectedModalMake] = useState('BMW');
+  const [newModelName, setNewModelName] = useState('');
+
+  const handleMakeChange = (selectedMake: string) => {
+    setMake(selectedMake);
+    const variants = makesMap[selectedMake] || [];
+    setModel(variants[0] || '');
+  };
+
+  const handleAddMake = () => {
+    if (!newMakeName.trim()) return;
+    const makeKey = newMakeName.trim();
+    if (!makesMap[makeKey]) {
+      setMakesMap(prev => ({ ...prev, [makeKey]: [] }));
+      setSelectedModalMake(makeKey);
+      setNewMakeName('');
+    } else {
+      alert("Make already exists.");
+    }
+  };
+
+  const handleAddVariant = () => {
+    if (!selectedModalMake) {
+      alert("Please select a Make first.");
+      return;
+    }
+    if (!newModelName.trim()) return;
+    const variantVal = newModelName.trim();
+    setMakesMap(prev => {
+      const current = prev[selectedModalMake] || [];
+      if (!current.includes(variantVal)) {
+        return {
+          ...prev,
+          [selectedModalMake]: [...current, variantVal]
+        };
+      }
+      return prev;
+    });
+    setNewModelName('');
+    alert(`Added model/variant "${variantVal}" under "${selectedModalMake}"`);
+  };
+
+  const handleUpdateMake = () => {
+    if (!selectedModalMake) return;
+    const newName = prompt("Enter new name for Make:", selectedModalMake);
+    if (newName && newName.trim() && newName.trim() !== selectedModalMake) {
+      const trimmedName = newName.trim();
+      if (makesMap[trimmedName]) {
+        alert("A make with this name already exists.");
+        return;
+      }
+      setMakesMap(prev => {
+        const next = { ...prev };
+        next[trimmedName] = next[selectedModalMake];
+        delete next[selectedModalMake];
+        return next;
+      });
+      if (make === selectedModalMake) {
+        setMake(trimmedName);
+      }
+      setSelectedModalMake(trimmedName);
+    }
+  };
+
+  const handleDeleteMake = () => {
+    if (!selectedModalMake) return;
+    if (confirm(`Are you sure you want to delete make "${selectedModalMake}" and all its model variants?`)) {
+      setMakesMap(prev => {
+        const next = { ...prev };
+        delete next[selectedModalMake];
+        return next;
+      });
+      const remainingMakes = Object.keys(makesMap).filter(m => m !== selectedModalMake);
+      const fallbackMake = remainingMakes[0] || '';
+      setMake(fallbackMake);
+      setModel(makesMap[fallbackMake]?.[0] || '');
+      setSelectedModalMake(fallbackMake);
+    }
+  };
+
+  const handleUpdateVariant = (targetMake: string, oldVariant: string) => {
+    const newName = prompt(`Enter new name for Variant of "${targetMake}":`, oldVariant);
+    if (newName && newName.trim() && newName.trim() !== oldVariant) {
+      const trimmedName = newName.trim();
+      setMakesMap(prev => {
+        const currentVariants = prev[targetMake] || [];
+        if (currentVariants.includes(trimmedName)) {
+          alert("Variant already exists under this Make.");
+          return prev;
+        }
+        return {
+          ...prev,
+          [targetMake]: currentVariants.map(v => v === oldVariant ? trimmedName : v)
+        };
+      });
+      if (make === targetMake && model === oldVariant) {
+        setModel(trimmedName);
+      }
+    }
+  };
+
+  const handleDeleteVariant = (targetMake: string, targetVariant: string) => {
+    if (confirm(`Are you sure you want to delete variant "${targetVariant}" from "${targetMake}"?`)) {
+      setMakesMap(prev => {
+        const currentVariants = prev[targetMake] || [];
+        return {
+          ...prev,
+          [targetMake]: currentVariants.filter(v => v !== targetVariant)
+        };
+      });
+      if (make === targetMake && model === targetVariant) {
+        const remaining = (makesMap[targetMake] || []).filter(v => v !== targetVariant);
+        setModel(remaining[0] || '');
+      }
+    }
+  };
+
   const [year, setYear] = useState<number | ''>('');
   const [registrationNo, setRegistrationNo] = useState('');
   const [vin, setVin] = useState('');
@@ -40,8 +166,18 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [fundingAccount, setFundingAccount] = useState('Main Operating Account (...4492)');
   const [sellerDetails, setSellerDetails] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [rcReceived, setRcReceived] = useState(false);
   const [activeInsurance, setActiveInsurance] = useState(false);
+
+  const filteredCustomers = useMemo(() => {
+    if (!sellerDetails) return customers;
+    const query = sellerDetails.toLowerCase();
+    return customers.filter(c => 
+      c.fullName.toLowerCase().includes(query) ||
+      c.phoneNumber.includes(query)
+    );
+  }, [customers, sellerDetails]);
 
   // Gallery main image (defaults to empty)
   const [mainImage, setMainImage] = useState('');
@@ -83,6 +219,24 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
       return;
     }
 
+    if (!sellerDetails.trim()) {
+      alert("Please select or enter a registered customer as the seller.");
+      return;
+    }
+
+    const matched = customers.some(
+      (c) => {
+        const optionLabel = `${c.fullName} - ${c.phoneNumber}`.trim().toLowerCase();
+        const inputVal = sellerDetails.trim().toLowerCase();
+        return optionLabel === inputVal || c.fullName.trim().toLowerCase() === inputVal;
+      }
+    );
+
+    if (!matched) {
+      alert("Seller must be a registered customer. Non-registered customers are not allowed.");
+      return;
+    }
+
     const newVehicle: Vehicle = {
       id: `VEH-${Math.floor(100 + Math.random() * 900)}`,
       make,
@@ -108,8 +262,8 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
 
   const handleReset = () => {
     if (confirm("Are you sure you want to discard your draft?")) {
-      setMake('');
-      setModel('');
+      setMake('BMW');
+      setModel('M4 Competition');
       setYear('');
       setRegistrationNo('');
       setVin('');
@@ -145,11 +299,11 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
         </div>
         <div>
           <button
-            onClick={handleScanVIN}
-            className="px-4 py-2.5 bg-white hover:bg-[#eceef0] border border-[#cbd5e1] rounded-xl font-sans text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-sm transition-all"
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2.5 bg-[#645efb] hover:bg-[#4b41e1] text-white rounded-xl font-sans text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all border-none"
           >
-            <Car className="w-4 h-4 text-[#645efb]" />
-            <span>Scan VIN via Camera</span>
+            <Plus className="w-4 h-4" />
+            <span>Add Make &amp; Variant</span>
           </button>
         </div>
       </div>
@@ -170,24 +324,30 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Vehicle Make</label>
-                <input
-                  type="text"
+                <select
                   value={make}
-                  onChange={(e) => setMake(e.target.value)}
-                  className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
-                  placeholder="e.g. Mercedes-Benz"
-                />
+                  onChange={(e) => handleMakeChange(e.target.value)}
+                  className="w-full bg-white rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all cursor-pointer"
+                >
+                  <option value="">-- Select Make --</option>
+                  {Object.keys(makesMap).map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Model Variant</label>
-                <input
-                  type="text"
+                <select
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
-                  placeholder="e.g. C-Class"
-                />
+                  className="w-full bg-white rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all cursor-pointer"
+                >
+                  <option value="">-- Select Variant --</option>
+                  {(makesMap[make] || []).map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -273,8 +433,8 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
           </div>
 
           {/* Documentation & Compliance Panel */}
-          <div className="bg-white rounded-2xl border border-[#cbd5e1]/40 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-[#cbd5e1]/40 bg-[#f7f9fb]/50 flex items-center gap-2.5">
+          <div className="bg-white rounded-2xl border border-[#cbd5e1]/40 shadow-sm">
+            <div className="p-5 border-b border-[#cbd5e1]/40 bg-[#f7f9fb]/50 flex items-center gap-2.5 rounded-t-2xl">
               <FileText className="w-5 h-5 text-[#645efb]" />
               <h3 className="font-headline text-md font-bold text-[#091426]">Documentation &amp; Compliance</h3>
             </div>
@@ -306,15 +466,49 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Seller / Dealership Name</label>
+                <div className="space-y-1.5 relative">
+                  <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">
+                    Seller Name <span className="text-red-500 font-bold">*</span>
+                  </label>
                   <input
                     type="text"
                     value={sellerDetails}
-                    onChange={(e) => setSellerDetails(e.target.value)}
+                    onChange={(e) => {
+                      setSellerDetails(e.target.value);
+                      setDropdownOpen(true);
+                    }}
+                    onFocus={() => setDropdownOpen(true)}
+                    onBlur={() => {
+                      setTimeout(() => setDropdownOpen(false), 200);
+                    }}
                     className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 font-sans text-sm outline-none focus:ring-2 focus:ring-[#645efb]/30 focus:border-[#645efb] transition-all"
-                    placeholder="Full name or Dealership"
+                    placeholder="Search by name or mobile number..."
                   />
+                  {dropdownOpen && filteredCustomers.length > 0 && (
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto bg-white border border-[#cbd5e1] rounded-xl shadow-lg">
+                      {filteredCustomers.map((c) => (
+                        <div
+                          key={c.id}
+                          onMouseDown={() => {
+                            setSellerDetails(`${c.fullName} - ${c.phoneNumber}`);
+                            setDropdownOpen(false);
+                          }}
+                          className="px-4 py-2 hover:bg-[#f2f4f6] cursor-pointer flex justify-between items-center text-xs font-sans border-b border-[#cbd5e1]/20 last:border-b-0 text-left"
+                        >
+                          <div>
+                            <span className="font-bold text-[#091426]">{c.fullName}</span>
+                            <span className="text-[#45474c] ml-2 text-[10px] font-semibold">{c.phoneNumber}</span>
+                          </div>
+                          <span className="text-[9px] bg-[#645efb]/10 text-[#645efb] px-1.5 py-0.5 rounded font-mono font-bold">{c.id}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {dropdownOpen && filteredCustomers.length === 0 && (
+                    <div className="absolute left-0 right-0 z-50 mt-1 p-3 bg-white border border-[#cbd5e1] rounded-xl shadow-lg text-[11px] text-red-500 font-semibold text-left">
+                      No registered customer matches this name.
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-6 pt-5">
@@ -550,6 +744,190 @@ export default function VehiclesScreen({ vehicles, onAddVehicle }: VehiclesScree
           </button>
         </div>
       </div>
+
+      {/* Add Make & Variant Modal */}
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddModalOpen(false)}
+              className="fixed inset-0 bg-[#091426] z-50 cursor-pointer"
+            />
+
+            {/* Modal Body */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', duration: 0.4 }}
+              className="fixed inset-0 m-auto max-w-md h-fit bg-white border border-[#cbd5e1] rounded-2xl p-6 shadow-2xl z-50 flex flex-col justify-between"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center pb-3 border-b border-[#cbd5e1]/40">
+                <h3 className="font-headline text-md font-bold text-[#091426]">Add Vehicle Make &amp; Variant</h3>
+                <button 
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="w-8 h-8 rounded-full hover:bg-[#eceef0] flex items-center justify-center text-[#45474c] transition-colors cursor-pointer border-none bg-transparent"
+                >
+                  <Plus className="w-5 h-5 transform rotate-45" />
+                </button>
+              </div>
+
+              {/* Form body */}
+              <div className="space-y-6 mt-4">
+                {/* Add Make section */}
+                <div className="space-y-2.5 p-4 bg-[#f7f9fb] border border-[#cbd5e1]/30 rounded-xl">
+                  <h4 className="text-xs font-bold text-[#091426] uppercase tracking-wider text-left">1. Create New Vehicle Make</h4>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newMakeName}
+                      onChange={(e) => setNewMakeName(e.target.value)}
+                      className="flex-1 border border-[#cbd5e1] rounded-xl px-3 py-2 font-sans text-xs outline-none focus:ring-2 focus:ring-[#645efb]"
+                      placeholder="Enter make (e.g. Hero, Toyota)"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddMake}
+                      className="px-4 py-2 bg-[#645efb] hover:bg-[#4b41e1] text-white font-sans text-xs font-bold rounded-xl transition-all cursor-pointer border-none shadow-sm"
+                    >
+                      Add Make
+                    </button>
+                  </div>
+                </div>
+
+                {/* Add Variant section */}
+                <div className="space-y-2.5 p-4 bg-[#f7f9fb] border border-[#cbd5e1]/30 rounded-xl text-left">
+                  <h4 className="text-xs font-bold text-[#091426] uppercase tracking-wider">2. Add Variant to Make</h4>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-[#45474c] uppercase">Select Make</label>
+                      <select
+                        value={selectedModalMake}
+                        onChange={(e) => setSelectedModalMake(e.target.value)}
+                        className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-sans text-xs outline-none focus:ring-2 focus:ring-[#645efb]"
+                      >
+                        <option value="">-- Choose Make --</option>
+                        {Object.keys(makesMap).map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-[#45474c] uppercase">Model Name / Variant</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newModelName}
+                          onChange={(e) => setNewModelName(e.target.value)}
+                          className="flex-1 border border-[#cbd5e1] rounded-xl px-3 py-2 font-sans text-xs outline-none focus:ring-2 focus:ring-[#645efb]"
+                          placeholder="Enter model (e.g. Activa, Fortuner)"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddVariant}
+                          className="px-4 py-2 bg-[#091426] hover:bg-[#1e293b] text-white font-sans text-xs font-bold rounded-xl transition-all cursor-pointer border-none shadow-sm"
+                        >
+                          Add Variant
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Manage Makes & Variants CRUD section */}
+                <div className="space-y-2.5 p-4 bg-[#f7f9fb] border border-[#cbd5e1]/30 rounded-xl text-left">
+                  <h4 className="text-xs font-bold text-[#091426] uppercase tracking-wider">3. Manage Makes &amp; Variants</h4>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-[#45474c] uppercase">Select Make to Manage</label>
+                      <div className="flex gap-2">
+                        <select
+                          value={selectedModalMake}
+                          onChange={(e) => setSelectedModalMake(e.target.value)}
+                          className="flex-1 bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-sans text-xs outline-none focus:ring-2 focus:ring-[#645efb]"
+                        >
+                          <option value="">-- Choose Make --</option>
+                          {Object.keys(makesMap).map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        {selectedModalMake && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={handleUpdateMake}
+                              className="px-2.5 py-2 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 text-xs font-bold rounded-xl transition-all cursor-pointer border-none"
+                              title="Rename Make"
+                            >
+                              Rename
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleDeleteMake}
+                              className="px-2.5 py-2 bg-red-500/10 text-red-600 hover:bg-red-500/20 text-xs font-bold rounded-xl transition-all cursor-pointer border-none"
+                              title="Delete Make"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedModalMake && (makesMap[selectedModalMake] || []).length > 0 && (
+                      <div className="space-y-1.5 pt-2 border-t border-[#cbd5e1]/30">
+                        <label className="block text-[10px] font-bold text-[#45474c] uppercase">Variants ({makesMap[selectedModalMake].length})</label>
+                        <div className="max-h-32 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+                          {makesMap[selectedModalMake].map((v) => (
+                            <div key={v} className="flex justify-between items-center bg-white border border-[#cbd5e1]/30 px-3 py-1.5 rounded-lg">
+                              <span className="font-sans text-xs text-[#091426]">{v}</span>
+                              <div className="flex gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateVariant(selectedModalMake, v)}
+                                  className="p-1 hover:bg-[#f2f4f6] text-[#645efb] rounded transition-colors border-none bg-transparent cursor-pointer"
+                                  title="Rename Variant"
+                                >
+                                  Rename
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteVariant(selectedModalMake, v)}
+                                  className="p-1 hover:bg-[#ffdad6] text-red-600 rounded transition-colors border-none bg-transparent cursor-pointer"
+                                  title="Delete Variant"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Close/Done button */}
+                <div className="flex justify-end pt-3 border-t border-[#cbd5e1]/40">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="px-6 py-2 bg-[#f2f4f6] hover:bg-[#eceef0] text-[#091426] font-sans text-xs font-bold rounded-xl transition-all cursor-pointer border-none"
+                  >
+                    Done / Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

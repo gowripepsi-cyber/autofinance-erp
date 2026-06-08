@@ -1200,6 +1200,7 @@ export default function App() {
                 <VehiclesScreen 
                   vehicles={vehicles}
                   onAddVehicle={handleAddVehicle}
+                  customers={customers}
                 />
               )}
               {currentTab === 'customers' && (

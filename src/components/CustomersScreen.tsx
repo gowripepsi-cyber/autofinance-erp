@@ -119,7 +119,7 @@ export default function CustomersScreen({
   };
 
   const handleRegister = () => {
-    if (!fullName || !phoneNumber) {
+    if (!fullName.trim() || !phoneNumber.trim()) {
       alert("Full Name and Phone Number are required.");
       return;
     }
@@ -380,7 +380,9 @@ export default function CustomersScreen({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-2 space-y-1.5">
-                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Full Name</label>
+                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">
+                  Full Name <span className="text-red-500 font-bold">*</span>
+                </label>
                 <input
                   type="text"
                   value={fullName}
@@ -402,7 +404,9 @@ export default function CustomersScreen({
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">Contact Phone Number</label>
+                <label className="block text-xs font-bold text-[#45474c] uppercase tracking-wider">
+                  Contact Phone Number <span className="text-red-500 font-bold">*</span>
+                </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#45474c]">+91</span>
                   <input
