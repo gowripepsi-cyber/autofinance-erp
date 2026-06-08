@@ -675,6 +675,23 @@ export default function App() {
     setCurrentTab('dashboard');
   };
 
+  const handleUpdateVehicle = async (updatedVehicle: Vehicle) => {
+    setVehicles(vehicles.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
+
+    try {
+      const { error } = await supabase
+        .from('vehicles')
+        .update(mapVehicleToDB(updatedVehicle))
+        .eq('id', updatedVehicle.id);
+      if (error) throw error;
+
+      showNotification(`Vehicle ${updatedVehicle.make} ${updatedVehicle.model} updated successfully!`);
+    } catch (err) {
+      console.error("Database update failed, updated locally only:", err);
+      showNotification("Updated vehicle details locally.", "info");
+    }
+  };
+
   const handleAddCustomer = async (newCustomer: Customer) => {
     setCustomers([newCustomer, ...customers]);
 
@@ -755,6 +772,23 @@ export default function App() {
     }
 
     setCurrentTab('dashboard');
+  };
+
+  const handleUpdateLoan = async (updatedLoan: Loan) => {
+    setLoans(loans.map(l => l.id === updatedLoan.id ? updatedLoan : l));
+
+    try {
+      const { error } = await supabase
+        .from('loans')
+        .update(mapLoanToDB(updatedLoan))
+        .eq('id', updatedLoan.id);
+      if (error) throw error;
+
+      showNotification(`Loan ${updatedLoan.id} updated successfully!`);
+    } catch (err) {
+      console.error("Database update failed, updated locally only:", err);
+      showNotification("Updated loan details locally.", "info");
+    }
   };
 
   const handleAddTransaction = async (newTxn: Transaction) => {
@@ -1201,6 +1235,9 @@ export default function App() {
                   vehicles={vehicles}
                   onAddVehicle={handleAddVehicle}
                   customers={customers}
+                  transactions={transactions}
+                  onAddTransaction={handleAddTransaction}
+                  onUpdateVehicle={handleUpdateVehicle}
                 />
               )}
               {currentTab === 'customers' && (
@@ -1218,6 +1255,9 @@ export default function App() {
                   customers={customers}
                   loans={loans}
                   onAddLoan={handleAddLoan}
+                  onAddTransaction={handleAddTransaction}
+                  onUpdateLoan={handleUpdateLoan}
+                  onAddVehicle={handleAddVehicle}
                 />
               )}
               {currentTab === 'cash-bank' && renderCashBankScreen()}
