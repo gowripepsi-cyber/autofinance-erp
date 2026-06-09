@@ -35,11 +35,11 @@ export default function Sidebar({ currentTab, setTab, onNewTransaction, user }: 
       { id: 'vehicles', name: 'Vehicles', icon: Car },
       { id: 'loans', name: 'Loans', icon: CreditCard },
       { id: 'overdue-dunning', name: 'Overdue Register', icon: AlertCircle },
+      { id: 'profit-tracking', name: 'Profit Tracking', icon: TrendingUp },
+      { id: 'reports', name: 'Reports Engine', icon: BarChart3 },
+      { id: 'office', name: 'Office Hub', icon: Building },
     ] : []),
     { id: 'cash-bank', name: 'Cash & Bank', icon: Landmark },
-    { id: 'profit-tracking', name: 'Profit Tracking', icon: TrendingUp },
-    { id: 'reports', name: 'Reports Engine', icon: BarChart3 },
-    { id: 'office', name: 'Office Hub', icon: Building },
     ...(isAdmin ? [{ id: 'master-control', name: 'Master Control', icon: Settings }] : []),
   ];
 

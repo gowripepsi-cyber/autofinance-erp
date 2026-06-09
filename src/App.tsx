@@ -49,7 +49,11 @@ import {
   Check,
   UserCheck,
   UserX,
-  KeyRound
+  KeyRound,
+  Clock,
+  Sparkles,
+  CalendarX,
+  UserMinus
 } from 'lucide-react';
 
 // --- DB Mappers to map between camelCase (JS) and snake_case (PostgreSQL) ---
@@ -295,14 +299,23 @@ export default function App() {
     }
   });
 
+  // Layout routing States
+  const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [userFilter, setUserFilter] = useState<string | null>(null);
+  const isAdmin = user?.role === 'admin' || user?.username === 'admin';
+
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     localStorage.setItem('erp_user', JSON.stringify(loggedInUser));
+    setCurrentTab('dashboard');
+    setUserFilter(null);
   };
 
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('erp_user');
+    setCurrentTab('dashboard');
+    setUserFilter(null);
   };
 
   // DB States
@@ -681,7 +694,6 @@ export default function App() {
   };
 
   // Layout routing States
-  const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
 
@@ -1037,6 +1049,29 @@ export default function App() {
       );
     }
 
+    const countActive = allUsers.filter(u => u.subscriptionStatus === 'Active').length;
+    const countPending = allUsers.filter(u => u.status === 'Pending').length;
+    const countTrial = allUsers.filter(u => u.subscriptionStatus === 'Trial').length;
+    const countExpired = allUsers.filter(u => u.subscriptionStatus === 'Expired').length;
+    const countInactive = allUsers.filter(u => u.subscriptionStatus === 'Inactive' || u.status === 'Suspended').length;
+
+    const metrics = [
+      { id: 'active', title: 'Active Users', count: countActive, color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: UserCheck },
+      { id: 'pending', title: 'Waiting Approval', count: countPending, color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Clock },
+      { id: 'trial', title: 'Trial Accounts', count: countTrial, color: 'bg-blue-50 text-blue-700 border-blue-100', icon: Sparkles },
+      { id: 'expired', title: 'Expired Access', count: countExpired, color: 'bg-rose-50 text-rose-700 border-rose-100', icon: CalendarX },
+      { id: 'inactive', title: 'Inactive/Suspended', count: countInactive, color: 'bg-slate-50 text-slate-700 border-slate-100', icon: UserMinus },
+    ];
+
+    const filteredUsers = allUsers.filter(u => {
+      if (userFilter === 'active') return u.subscriptionStatus === 'Active';
+      if (userFilter === 'pending') return u.status === 'Pending';
+      if (userFilter === 'trial') return u.subscriptionStatus === 'Trial';
+      if (userFilter === 'expired') return u.subscriptionStatus === 'Expired';
+      if (userFilter === 'inactive') return u.subscriptionStatus === 'Inactive' || u.status === 'Suspended';
+      return true;
+    });
+
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
         <div className="border-b border-[#cbd5e1]/40 pb-4">
@@ -1044,10 +1079,52 @@ export default function App() {
           <p className="text-xs text-[#45474c] font-semibold uppercase tracking-wider mt-1">Central access configuration</p>
         </div>
 
+        {/* KPI Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          {metrics.map((m, idx) => {
+            const Icon = m.icon;
+            const isSelected = userFilter === m.id;
+            return (
+              <button
+                key={idx}
+                onClick={() => setUserFilter(isSelected ? null : m.id)}
+                className={`bg-white p-5 rounded-2xl border flex items-center gap-4 text-left cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] ${
+                  isSelected 
+                    ? 'border-[#645efb] ring-2 ring-[#645efb]/15 shadow-sm shadow-[#645efb]/5 scale-[1.01]' 
+                    : 'border-[#cbd5e1]/40 shadow-sm'
+                }`}
+              >
+                <div className={`p-3 rounded-xl ${m.color.split(' ')[0]} ${m.color.split(' ')[1]}`}>
+                  <Icon className="w-5 h-5 font-bold" />
+                </div>
+                <div>
+                  <p className="font-sans text-[11px] font-bold text-[#45474c] uppercase tracking-wider">{m.title}</p>
+                  <h3 className="font-headline text-2xl font-black mt-0.5 text-[#091426]">{m.count}</h3>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
         {/* User Account Management Directory */}
         <div className="bg-white rounded-2xl border border-[#cbd5e1]/40 p-6 shadow-sm space-y-4">
-          <h3 className="font-headline text-md font-bold text-[#091426]">User Registration &amp; SaaS Auth Directory</h3>
-          <p className="text-xs font-medium text-[#45474c]">Manage client accounts, review registration parameters, and authorize system access:</p>
+          <div className="flex justify-between items-center">
+            <h3 className="font-headline text-md font-bold text-[#091426]">User Registration &amp; SaaS Auth Directory</h3>
+            {userFilter && (
+              <button 
+                onClick={() => setUserFilter(null)}
+                className="text-xs font-bold text-[#645efb] hover:underline cursor-pointer border-none bg-transparent"
+              >
+                Clear Filter (Show All)
+              </button>
+            )}
+          </div>
+          <p className="text-xs font-medium text-[#45474c]">
+            {userFilter 
+              ? `Showing users matching "${metrics.find(m => m.id === userFilter)?.title}" filter:` 
+              : "Manage client accounts, review registration parameters, and authorize system access:"
+            }
+          </p>
 
           <div className="overflow-x-auto mt-4">
             <table className="w-full text-left font-sans text-xs border-collapse">
@@ -1062,7 +1139,7 @@ export default function App() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#cbd5e1]/20">
-                {allUsers.map((u) => (
+                {filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-[#f7f9fb]/50 transition-colors">
                     <td className="py-4 px-4">
                       <div className="font-bold text-[#091426]">{u.fullName}</div>
@@ -1222,6 +1299,13 @@ export default function App() {
                     </td>
                   </tr>
                 ))}
+                {filteredUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-xs text-[#45474c] font-medium bg-[#fcfcfd]">
+                      No accounts found matching this filter category. Click the active card again or use "Clear Filter" to show all.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -1369,7 +1453,7 @@ export default function App() {
                   user={user}
                 />
               )}
-              {currentTab === 'reports' && (
+              {currentTab === 'reports' && !isAdmin && (
                 <ReportsScreen 
                   vehicles={vehicles}
                   customers={customers}
@@ -1377,7 +1461,7 @@ export default function App() {
                   transactions={transactions}
                 />
               )}
-              {currentTab === 'office' && (
+              {currentTab === 'office' && !isAdmin && (
                 <OfficeScreen 
                   employees={employees}
                   officeExpenses={officeExpenses}
@@ -1389,7 +1473,7 @@ export default function App() {
                 />
               )}
               {currentTab === 'cash-bank' && renderCashBankScreen()}
-              {currentTab === 'profit-tracking' && renderProfitTrackingScreen()}
+              {currentTab === 'profit-tracking' && !isAdmin && renderProfitTrackingScreen()}
               {currentTab === 'master-control' && renderMasterControlScreen()}
             </AnimatePresence>
           )}
