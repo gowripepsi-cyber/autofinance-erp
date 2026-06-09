@@ -92,6 +92,41 @@ export interface User {
   subscriptionEndDate?: string;
 }
 
+export interface DunningLog {
+  id: string;
+  loanId: string;
+  customerName: string;
+  actionType: 'Call' | 'SMS' | 'Email' | 'Visit' | 'Legal Notice' | 'Repo Order';
+  date: string;
+  summary: string;
+  notes: string;
+  agentName: string;
+}
+
+export interface Employee {
+  id: string;
+  fullName: string;
+  role: string;
+  email: string;
+  phoneNumber: string;
+  salary: number;
+  allowances: number;
+  deductions: number;
+  dateJoined: string;
+  status: 'Active' | 'Inactive';
+  payrollStatus: 'Paid' | 'Pending';
+}
+
+export interface OfficeExpense {
+  id: string;
+  category: 'Rent' | 'Utilities' | 'Office Supplies' | 'Marketing' | 'Travel' | 'Other';
+  description: string;
+  amount: number;
+  date: string;
+  paymentMethod: 'Bank Transfer' | 'Cash' | 'Credit Card';
+  approvedBy: string;
+}
+
 
 // Initial Data definitions
 export const INITIAL_VEHICLES: Vehicle[] = [
@@ -222,6 +257,48 @@ export const INITIAL_LOANS: Loan[] = [
     defaultInstances: 0,
     employmentLength: '4.5 Years',
     dtiRatio: '18.4%'
+  },
+  {
+    id: 'LN-2023-1002',
+    customerId: 'CUST-001',
+    customerName: 'Robert Chambers',
+    vehicleId: 'VEH-001',
+    vehicleName: 'BMW M4 Competition',
+    salePrice: 82000,
+    downPayment: 12000,
+    loanAmount: 70000,
+    tenureMonths: 60,
+    interestRate: 6.5,
+    docFee: 250,
+    dueStartDate: '2025-12-01',
+    emiCalculated: 1369.85,
+    status: 'Active',
+    creditScore: 780,
+    riskCategory: 'Medium Risk',
+    defaultInstances: 2,
+    employmentLength: '6 Years',
+    dtiRatio: '22.5%'
+  },
+  {
+    id: 'LN-2023-1003',
+    customerId: 'CUST-003',
+    customerName: 'Alice Thompson',
+    vehicleId: 'VEH-002',
+    vehicleName: 'Audi Q8 e-tron',
+    salePrice: 97500,
+    downPayment: 22500,
+    loanAmount: 75000,
+    tenureMonths: 48,
+    interestRate: 8.0,
+    docFee: 250,
+    dueStartDate: '2026-01-01',
+    emiCalculated: 1830.82,
+    status: 'Active',
+    creditScore: 742,
+    riskCategory: 'High Risk',
+    defaultInstances: 3,
+    employmentLength: '2.5 Years',
+    dtiRatio: '31.2%'
   }
 ];
 
@@ -257,5 +334,100 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     amount: 410.00,
     status: 'Pending',
     date: '2023-10-20'
+  }
+];
+
+export const INITIAL_DUNNING_LOGS: DunningLog[] = [
+  {
+    id: 'DUN-001',
+    loanId: 'LN-2023-1002',
+    customerName: 'Robert Chambers',
+    actionType: 'Call',
+    date: '2026-06-05',
+    summary: 'Call answered, promised payment',
+    notes: 'Customer mentioned salary delay. Promised to pay 1 EMI by June 12th.',
+    agentName: 'Admin User'
+  },
+  {
+    id: 'DUN-002',
+    loanId: 'LN-2023-1003',
+    customerName: 'Alice Thompson',
+    actionType: 'Legal Notice',
+    date: '2026-06-01',
+    summary: 'Demand notice served via registered post',
+    notes: 'No response to previous three calls. Level 3 Demand notice sent to registered address.',
+    agentName: 'Admin User'
+  }
+];
+
+export const INITIAL_EMPLOYEES: Employee[] = [
+  {
+    id: 'EMP-001',
+    fullName: 'David Vance',
+    role: 'Collections Officer',
+    email: 'david.v@autofinance.erp',
+    phoneNumber: '+91 99887 76655',
+    salary: 32000,
+    allowances: 3500,
+    deductions: 1200,
+    dateJoined: '2024-01-15',
+    status: 'Active',
+    payrollStatus: 'Pending'
+  },
+  {
+    id: 'EMP-002',
+    fullName: 'Priya Sharma',
+    role: 'Credit Risk Analyst',
+    email: 'priya.s@autofinance.erp',
+    phoneNumber: '+91 99112 23344',
+    salary: 45000,
+    allowances: 5000,
+    deductions: 1800,
+    dateJoined: '2024-03-01',
+    status: 'Active',
+    payrollStatus: 'Pending'
+  },
+  {
+    id: 'EMP-003',
+    fullName: 'Marcus Aurelius',
+    role: 'Repo Operations Manager',
+    email: 'marcus.a@autofinance.erp',
+    phoneNumber: '+91 98888 88888',
+    salary: 50000,
+    allowances: 6000,
+    deductions: 2000,
+    dateJoined: '2023-08-20',
+    status: 'Active',
+    payrollStatus: 'Paid'
+  }
+];
+
+export const INITIAL_EXPENSES: OfficeExpense[] = [
+  {
+    id: 'EXP-001',
+    category: 'Rent',
+    description: 'Mumbai Branch HQ Rent - June 2026',
+    amount: 75000,
+    date: '2026-06-01',
+    paymentMethod: 'Bank Transfer',
+    approvedBy: 'Admin User'
+  },
+  {
+    id: 'EXP-002',
+    category: 'Utilities',
+    description: 'Broadband Internet & Electricity',
+    amount: 14500,
+    date: '2026-06-04',
+    paymentMethod: 'Credit Card',
+    approvedBy: 'Admin User'
+  },
+  {
+    id: 'EXP-003',
+    category: 'Office Supplies',
+    description: 'A4 Papers, Printer Cartridges & Stationery',
+    amount: 4800,
+    date: '2026-06-05',
+    paymentMethod: 'Cash',
+    approvedBy: 'Priya Sharma'
   }
 ];

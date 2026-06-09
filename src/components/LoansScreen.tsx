@@ -450,7 +450,7 @@ export default function LoansScreen({
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="text-left flex-1 min-w-0">
           <h2 className="font-headline text-3xl font-extrabold text-[#091426] tracking-tight">
-            {subTab === 'apply' ? 'New Loan' : subTab === 'rc-pledge' ? 'RC-Pledge Financing' : 'Active Loans Directory'}
+            {subTab === 'apply' ? 'Sale & Loan' : subTab === 'rc-pledge' ? 'RC-Pledge Financing' : 'Active Loans Directory'}
           </h2>
           <p className="font-sans text-sm text-[#45474c] mt-1.5 font-medium max-w-xl">
             {subTab === 'apply' 
@@ -474,7 +474,7 @@ export default function LoansScreen({
               }`}
             >
               <Calculator className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>New Loan</span>
+              <span>Sale & Loan</span>
             </button>
             <button
               onClick={() => setSubTab('rc-pledge')}
@@ -1374,7 +1374,7 @@ export default function LoansScreen({
                 {loans.length === 0 && (
                   <tr>
                     <td colSpan={9} className="px-6 py-10 text-center text-xs text-[#45474c] font-semibold">
-                      No active loans found. Switch to the New Loan tab to create one.
+                      No active loans found. Switch to the Sale & Loan tab to create one.
                     </td>
                   </tr>
                 )}

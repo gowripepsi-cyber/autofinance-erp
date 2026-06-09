@@ -11,6 +11,9 @@ import DashboardScreen from './components/DashboardScreen';
 import VehiclesScreen from './components/VehiclesScreen';
 import CustomersScreen from './components/CustomersScreen';
 import LoansScreen from './components/LoansScreen';
+import OverdueDunningScreen from './components/OverdueDunningScreen';
+import ReportsScreen from './components/ReportsScreen';
+import OfficeScreen from './components/OfficeScreen';
 import QuickTransactionModal from './components/QuickTransactionModal';
 import LoginScreen from './components/LoginScreen';
 import { supabase } from './lib/supabaseClient';
@@ -24,7 +27,13 @@ import {
   Customer,
   Loan,
   Transaction,
-  User
+  User,
+  DunningLog,
+  INITIAL_DUNNING_LOGS,
+  Employee,
+  OfficeExpense,
+  INITIAL_EMPLOYEES,
+  INITIAL_EXPENSES
 } from './types';
 
 import { 
@@ -302,6 +311,9 @@ export default function App() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [dunningLogs, setDunningLogs] = useState<DunningLog[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [officeExpenses, setOfficeExpenses] = useState<OfficeExpense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // UI state for password reset inputs in User Management list
@@ -322,12 +334,18 @@ export default function App() {
           const localLoans = localStorage.getItem('erp_loans');
           const localTransactions = localStorage.getItem('erp_transactions');
           const localUsers = localStorage.getItem('erp_users');
+          const localDunningLogs = localStorage.getItem('erp_dunning_logs');
+          const localEmployees = localStorage.getItem('erp_employees');
+          const localExpenses = localStorage.getItem('erp_expenses');
 
           setVehicles(localVehicles ? JSON.parse(localVehicles) : INITIAL_VEHICLES);
           setCustomers(localCustomers ? JSON.parse(localCustomers) : INITIAL_CUSTOMERS);
           setLoans(localLoans ? JSON.parse(localLoans) : INITIAL_LOANS);
           setTransactions(localTransactions ? JSON.parse(localTransactions) : INITIAL_TRANSACTIONS);
           setAllUsers(localUsers ? JSON.parse(localUsers) : INITIAL_USERS);
+          setDunningLogs(localDunningLogs ? JSON.parse(localDunningLogs) : INITIAL_DUNNING_LOGS);
+          setEmployees(localEmployees ? JSON.parse(localEmployees) : INITIAL_EMPLOYEES);
+          setOfficeExpenses(localExpenses ? JSON.parse(localExpenses) : INITIAL_EXPENSES);
           setIsLoading(false);
           return;
         }
@@ -351,6 +369,15 @@ export default function App() {
         setLoans((lRes.data || []).map(mapLoanFromDB));
         setTransactions((tRes.data || []).map(mapTransactionFromDB));
         setAllUsers((uRes.data || []).map(mapUserFromDB));
+        
+        const localDunningLogs = localStorage.getItem('erp_dunning_logs');
+        setDunningLogs(localDunningLogs ? JSON.parse(localDunningLogs) : INITIAL_DUNNING_LOGS);
+
+        const localEmployees = localStorage.getItem('erp_employees');
+        setEmployees(localEmployees ? JSON.parse(localEmployees) : INITIAL_EMPLOYEES);
+
+        const localExpenses = localStorage.getItem('erp_expenses');
+        setOfficeExpenses(localExpenses ? JSON.parse(localExpenses) : INITIAL_EXPENSES);
       } catch (err) {
         console.error("Supabase integration error, using local fallback seed data:", err);
         const localVehicles = localStorage.getItem('erp_vehicles');
@@ -358,12 +385,18 @@ export default function App() {
         const localLoans = localStorage.getItem('erp_loans');
         const localTransactions = localStorage.getItem('erp_transactions');
         const localUsers = localStorage.getItem('erp_users');
+        const localDunningLogs = localStorage.getItem('erp_dunning_logs');
+        const localEmployees = localStorage.getItem('erp_employees');
+        const localExpenses = localStorage.getItem('erp_expenses');
 
         setVehicles(localVehicles ? JSON.parse(localVehicles) : INITIAL_VEHICLES);
         setCustomers(localCustomers ? JSON.parse(localCustomers) : INITIAL_CUSTOMERS);
         setLoans(localLoans ? JSON.parse(localLoans) : INITIAL_LOANS);
         setTransactions(localTransactions ? JSON.parse(localTransactions) : INITIAL_TRANSACTIONS);
         setAllUsers(localUsers ? JSON.parse(localUsers) : INITIAL_USERS);
+        setDunningLogs(localDunningLogs ? JSON.parse(localDunningLogs) : INITIAL_DUNNING_LOGS);
+        setEmployees(localEmployees ? JSON.parse(localEmployees) : INITIAL_EMPLOYEES);
+        setOfficeExpenses(localExpenses ? JSON.parse(localExpenses) : INITIAL_EXPENSES);
       } finally {
         setIsLoading(false);
       }
@@ -402,6 +435,24 @@ export default function App() {
       localStorage.setItem('erp_users', JSON.stringify(allUsers));
     }
   }, [allUsers, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem('erp_dunning_logs', JSON.stringify(dunningLogs));
+    }
+  }, [dunningLogs, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem('erp_employees', JSON.stringify(employees));
+    }
+  }, [employees, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem('erp_expenses', JSON.stringify(officeExpenses));
+    }
+  }, [officeExpenses, isLoading]);
 
   const handleVerifyCredentials = async (usernameInput: string, passwordInput: string) => {
     const lowerUser = usernameInput.trim().toLowerCase();
@@ -803,6 +854,53 @@ export default function App() {
       console.error("Database save failed, updated locally only:", err);
       showNotification("Saved transaction ledger locally (offline fallback mode).", "info");
     }
+  };
+
+  const handleAddDunningLog = (newLog: DunningLog) => {
+    setDunningLogs([newLog, ...dunningLogs]);
+  };
+
+  const handleAddEmployee = (emp: Employee) => {
+    setEmployees([emp, ...employees]);
+  };
+
+  const handleUpdateEmployee = (updated: Employee) => {
+    setEmployees(employees.map(e => e.id === updated.id ? updated : e));
+  };
+
+  const handlePayEmployee = (empId: string) => {
+    const emp = employees.find(e => e.id === empId);
+    if (!emp) return;
+
+    // Deduct Net salary from liquid balance (logs successful transaction)
+    const netSalary = emp.salary + emp.allowances - emp.deductions;
+    const payTxn: Transaction = {
+      id: `#TXN-PAY-${Math.floor(10000 + Math.random() * 90000)}`,
+      customer: `[STAFF] ${emp.fullName}`,
+      vehicle: `Payroll Salary - Role: ${emp.role}`,
+      amount: -netSalary, // Negative for outflow
+      status: 'Success',
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    setTransactions(prev => [payTxn, ...prev]);
+    setEmployees(prev => prev.map(e => e.id === empId ? { ...e, payrollStatus: 'Paid' } : e));
+  };
+
+  const handleAddExpense = (exp: OfficeExpense) => {
+    setOfficeExpenses([exp, ...officeExpenses]);
+
+    // Outflow transaction
+    const expTxn: Transaction = {
+      id: `#TXN-EXP-${Math.floor(10000 + Math.random() * 90000)}`,
+      customer: `[EXPENSE] ${exp.category}`,
+      vehicle: exp.description,
+      amount: -exp.amount, // Negative for outflow
+      status: 'Success',
+      date: exp.date
+    };
+
+    setTransactions(prev => [expTxn, ...prev]);
   };
 
   // Helper currency formatter for Indian Rupees
@@ -1258,6 +1356,36 @@ export default function App() {
                   onAddTransaction={handleAddTransaction}
                   onUpdateLoan={handleUpdateLoan}
                   onAddVehicle={handleAddVehicle}
+                />
+              )}
+              {currentTab === 'overdue-dunning' && (
+                <OverdueDunningScreen 
+                  loans={loans}
+                  customers={customers}
+                  dunningLogs={dunningLogs}
+                  onAddDunningLog={handleAddDunningLog}
+                  onUpdateLoan={handleUpdateLoan}
+                  onAddTransaction={handleAddTransaction}
+                  user={user}
+                />
+              )}
+              {currentTab === 'reports' && (
+                <ReportsScreen 
+                  vehicles={vehicles}
+                  customers={customers}
+                  loans={loans}
+                  transactions={transactions}
+                />
+              )}
+              {currentTab === 'office' && (
+                <OfficeScreen 
+                  employees={employees}
+                  officeExpenses={officeExpenses}
+                  onAddEmployee={handleAddEmployee}
+                  onUpdateEmployee={handleUpdateEmployee}
+                  onPayEmployee={handlePayEmployee}
+                  onAddExpense={handleAddExpense}
+                  user={user}
                 />
               )}
               {currentTab === 'cash-bank' && renderCashBankScreen()}
